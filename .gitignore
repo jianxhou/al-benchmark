@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data and results (don't commit large files)
+results/raw/
+results/*.parquet
+*.csv
+!**/example_*.csv
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Environment
+.env
+*.local
+
+# Generated outputs
+figures/*.png
+figures/*.pdf
+!figures/.gitkeep
+
+# Literature (PDFs are large, don't commit)
+literature/*.pdf
