@@ -13,8 +13,7 @@ venv/
 *.ipynb_checkpoints
 
 # Data and results (don't commit large files)
-results/raw/
-results/*.parquet
+results/*
 *.csv
 !**/example_*.csv
 
@@ -37,3 +36,4 @@ figures/*.pdf
 
 # Literature (PDFs are large, don't commit)
 literature/*.pdf
+!results/.gitkeep
