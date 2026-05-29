@@ -4,7 +4,7 @@ A systematic benchmark of acquisition strategies for Bayesian optimization on en
 
 ## Status
 
-🚧 Project started: May 27, 2026
+🚧 Project started: May 24, 2026
 🎯 Target completion: 5 weeks
 
 ## Project Structure
