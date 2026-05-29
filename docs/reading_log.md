@@ -63,3 +63,67 @@ Frazier provides a self-contained tutorial on Bayesian optimization (BO) for exp
 - [ ] What's the exact Matérn 5/2 formula and how do its hyperparameters interact with BO inner-loop optimization?
 - [ ] How does GP-UCB's theoretical β schedule (β_t = c · log(t)) compare with the fixed β = 2 that BoTorch uses by default? Is this a practical compromise worth discussing in my report?
 - [ ] Frazier's discussion is for noise-free observations. For Phase 2's UCI Concrete problem (real measured data), what changes in the EI/UCB formulas under heteroscedastic noise?
+
+---
+
+## De Ath, G., Everson, R. M., Rahat, A. A. M., & Fieldsend, J. E. (2019).
+### "Greed is Good? On the Choice of Exploitation Versus Exploration in Bayesian Optimization"
+### arXiv:1911.12809
+
+**Read**: Abstract, Introduction, Section 2 (acquisition function as Pareto problem), Section 3 (ε-greedy methods), skim of experiments.
+
+### Core thesis
+
+The paper challenges the dominant narrative that BO requires carefully designed acquisition functions to balance exploration and exploitation. The authors argue that on many practical BO problems, a simple **ε-greedy strategy** — selecting the GP posterior mean maximizer 90% of the time and exploring randomly 10% of the time — performs at least as well as, and often better than, EI and UCB. The advantage is most pronounced in higher dimensions and with limited budgets.
+
+### Three main contributions
+
+1. **Pareto-front reinterpretation of acquisition functions.**
+   They cast BO as a bi-objective problem: maximize the GP posterior mean (exploitation) and maximize the GP posterior variance (exploration). They prove EI and UCB always select points on the exploration-exploitation Pareto front; PI does not always; weighted EI only does under certain weight ranges. This is the conceptual hook of the paper.
+
+2. **Two ε-greedy methods.**
+   - **ε-PF**: with probability 1-ε, pick the greedy (mean-maximizing) point; otherwise sample randomly from the Pareto front.
+   - **ε-RS**: with probability 1-ε, pick the greedy point; otherwise sample uniformly from the entire search space.
+   They use ε=0.1 throughout — a deliberate choice, not optimized per-problem.
+
+3. **Large-scale empirical study.**
+   - 10 synthetic benchmarks, 1-10D
+   - 2 real-world tasks (CFD, robot active learning)
+   - Result: ε-greedy is at least competitive with EI/UCB, and frequently better in higher dimensions.
+
+### Authors' explanation for why ε-greedy works
+
+In higher dimensions, the GP surrogate is inherently inaccurate. So even a purely greedy strategy (which trusts the model fully) ends up doing some implicit exploration because the model's "best guess" is often wrong. Adding 10% random exploration on top of this provides enough additional coverage without the over-cautious behavior that EI/UCB exhibit.
+
+### Why this matters for my project
+
+**Direct connection to my Unit 3.4 finding**: I observed EI vs UCB with Nemenyi p=0.89 (statistically indistinguishable) and EI/UCB only marginally better than Random on Ackley-10D. De Ath et al. give a **principled explanation** for both:
+- EI ≈ UCB because both are Pareto-front methods with similar exploration weights
+- BO collapses toward Random in high dimensions because GP uncertainty estimates degrade
+
+**Implication for my paper**: I should consider adding ε-greedy as a fourth acquisition strategy in Phase 2. It's cheap to implement (basically `if uniform() < epsilon: random else: max posterior mean`), and would strengthen the methodological story.
+
+### Critical observations / limitations
+
+- **ε=0.1 is empirically chosen, not theoretically justified.** No convergence guarantees. Different problems likely have different optimal ε.
+- The paper does not directly compare against Thompson Sampling, which is another "implicit exploration" baseline that could be relevant.
+- Their CFD task is OpenFOAM-based; not the same as OpenAeroStruct (my planned Phase 2 task), but methodologically similar (expensive black-box function).
+- ε-PF requires solving the bi-objective Pareto front, which is non-trivial in high dimensions. ε-RS is much simpler. The paper shows both work; ε-RS is probably what I'd implement first.
+
+### Quotes worth remembering (paraphrased — direct quotes not copied)
+
+- The Pareto-front reinterpretation: any "reasonable" acquisition function should be Pareto-optimal in the (mean, variance) plane.
+- The greedy intuition: trusting the model fully isn't necessarily bad if the model is bad in a "uniform" way across the search space.
+
+### Open questions for further investigation
+
+1. **Does the ε-greedy advantage hold for engineering surrogate models (e.g., OpenAeroStruct airfoil design)?** De Ath et al. test on CFD but not on aerodynamic design. This is exactly the gap my Phase 2 could fill.
+2. **How does the optimal ε scale with dimensionality?** Their ε=0.1 is fixed; would ε=0.05 work in 2D and ε=0.2 in 10D? An ε-schedule could be its own ablation.
+3. **Random Forest vs GP**: if the model is RF (less smooth uncertainty estimates), does the ε-greedy story still hold? This connects to my Phase 2 plan.
+4. **Connection to Thompson Sampling**: TS samples from the posterior; ε-greedy is a kind of degenerate TS where most samples are at the mean. Is there a unifying framework?
+
+### Action items
+
+- [ ] If Phase 2 time permits, add `EpsilonGreedy(epsilon=0.1)` as a fourth acquisition strategy. Easy to implement.
+- [ ] In my paper Discussion, cite De Ath et al. 2019 as supporting evidence for the "EI ≈ UCB" observation.
+- [ ] Look up the references they cite for "GP uncertainty is poorly calibrated in high D" — this is methodologically important for my Ackley result.
