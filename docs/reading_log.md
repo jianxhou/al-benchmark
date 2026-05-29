@@ -16,3 +16,50 @@ A summary of papers read for this project. Each entry includes:
 ---
 
 ## (Entries will be added here as papers are read)
+---
+
+## 1. Frazier (2018) — A Tutorial on Bayesian Optimization
+
+**Read on**: 2026-05-28
+**arXiv**: 1807.02811
+**Sections read**: 1 (Introduction), 2 (Gaussian Process Regression), 3 (Acquisition Functions)
+**Status**: Core concepts understood; will revisit Section 4 (algorithm) and Section 5 (extensions) when needed for Phase 2 work on qEI.
+
+### Summary
+
+Frazier provides a self-contained tutorial on Bayesian optimization (BO) for expensive black-box functions. The framework has two ingredients: a Gaussian Process (GP) surrogate that models the unknown objective with calibrated uncertainty, and an acquisition function that scores candidate points by their value for the next evaluation. The tutorial derives closed-form expressions for the GP posterior under Gaussian assumptions, then walks through the three classical acquisition functions — Expected Improvement, Probability of Improvement, and Upper Confidence Bound — showing how each balances exploration of uncertain regions against exploitation of currently promising areas. Frazier emphasizes BO is most useful when function evaluations are expensive (minutes to hours per call), dimensionality is modest (typically d ≤ 20), and gradients are unavailable.
+
+### Section 2: Gaussian Process Regression
+
+- A GP is fully specified by a mean function μ(x) and a covariance function (kernel) k(x, x'). The kernel encodes the smoothness assumption — nearby points have correlated outputs.
+- Frazier recommends the Matérn 5/2 kernel as the practical default in BO rather than RBF, because it produces twice-differentiable sample paths that match real engineering responses better than the infinitely-smooth RBF.
+- The GP posterior after observing n points has closed-form mean and variance, but requires inverting an n × n kernel matrix, which is O(n³). This is why BO is typically restricted to n < 1000.
+- Lengthscale hyperparameters in the kernel control how quickly correlations decay across input dimensions. With ARD (one lengthscale per dimension), the GP learns which inputs matter most — this is what BoTorch's default `SingleTaskGP` does, and what the two-element lengthscale tensor in my GP smoke test was showing.
+
+### Section 3: Acquisition Functions
+
+- All three classical acquisition functions have closed forms when the surrogate is a GP, which is why the BO inner loop is fast despite the GP fitting cost.
+- **Expected Improvement (EI)**: α(x) = E[max(f(x) − f*, 0)], where f* is the current best. Closed form involves the Gaussian CDF Φ and PDF φ. Balances exploration (high σ → larger expected upside) and exploitation (high μ relative to f* → larger expected improvement).
+- **Probability of Improvement (PI)**: α(x) = P(f(x) > f*). Simpler than EI but tends to be overly exploitative — it doesn't differentiate between "barely beats f*" and "dramatically beats f*".
+- **Upper Confidence Bound (UCB)**: α(x) = μ(x) + β^(1/2) · σ(x). The β parameter directly controls the exploration-exploitation tradeoff. GP-UCB has theoretical no-regret guarantees (Srinivas et al. 2010), unlike EI.
+- Acquisition optimization itself is non-trivial: the acquisition surface is multimodal, so BO implementations use multi-start L-BFGS-B (this is what BoTorch's `optimize_acqf` does internally with `num_restarts` and `raw_samples`).
+
+### Three takeaways relevant to my project
+
+1. **EI's closed-form derivation explains its exploration phase**. EI is non-zero even when μ(x) < f*, as long as σ(x) is large enough — the formula gives positive weight to the tail of the posterior that exceeds f*. This explains why my Day 1 notebook's EI on Branin stayed at best = -1.42 for 11 iterations before breaking through: it was systematically probing high-σ regions whose posterior mean was unattractive but whose tails justified the cost. The "exploration phase" is not a quirk — it's mandated by the math.
+
+2. **Kernel choice is not innocuous**. Frazier recommends Matérn 5/2 as the BO default, but BoTorch's `SingleTaskGP` defaults to RBF (my smoke test confirmed this). This is a methodological design choice I should note explicitly in my report, and possibly run an ablation on (RBF vs Matérn 5/2) if time allows in Phase 2.
+
+3. **Closed-form acquisitions justify sequential BO, but qEI loses this advantage**. Section 3 ends by noting batch acquisitions like qEI require Monte Carlo estimation because no closed form exists. This is exactly why qEI is computationally heavier than EI — a structural reason supporting my decision to frame qEI as Phase 2 rather than Phase 1.
+
+### Possible citations for my paper
+
+- "BO is most useful when function evaluations are expensive, the dimensionality is modest, and gradients are unavailable" (Frazier 2018, Section 1) — to motivate why I focus on d ≤ 10 engineering problems.
+- "The Matérn 5/2 kernel produces sample paths that are twice-differentiable, a property that matches many physical responses better than the infinitely-smooth RBF kernel" (Section 2) — for an ablation discussion or design choice justification.
+- "Expected Improvement has no theoretical finite-time regret guarantee, unlike GP-UCB which has logarithmic-regret bounds under appropriate β scaling" (Section 3) — when discussing EI's instability vs UCB's worst-case behavior, especially in light of my Day 2 experiment where UCB had one catastrophic seed (regret 1.55) but better median performance overall.
+
+### Open questions / to revisit
+
+- [ ] What's the exact Matérn 5/2 formula and how do its hyperparameters interact with BO inner-loop optimization?
+- [ ] How does GP-UCB's theoretical β schedule (β_t = c · log(t)) compare with the fixed β = 2 that BoTorch uses by default? Is this a practical compromise worth discussing in my report?
+- [ ] Frazier's discussion is for noise-free observations. For Phase 2's UCI Concrete problem (real measured data), what changes in the EI/UCB formulas under heteroscedastic noise?
