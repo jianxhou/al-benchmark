@@ -82,3 +82,25 @@ class Ackley(BaseProblem):
 
     def _evaluate(self, x: Tensor) -> Tensor:
         return self._fn(x)
+
+class SixHumpCamel(BaseProblem):
+    """Six-Hump Camel function, a 2D benchmark with six local minima.
+
+    Two global minima at approximately (0.0898, -0.7126) and
+    (-0.0898, 0.7126), both with value approximately -1.0316.
+
+    BoTorch returns the negated form for maximization.
+    """
+
+    def __init__(self) -> None:
+        from botorch.test_functions import SixHumpCamel as _SixHumpCamel
+
+        self.name = "SixHumpCamel"
+        self.dim = 2
+        self._fn = _SixHumpCamel(negate=True)
+        self.bounds = self._fn.bounds  # x1 in [-3, 3], x2 in [-2, 2]
+        # Known global min is -1.0316; negated form has max +1.0316
+        self.optimal_value = 1.0316
+
+    def _evaluate(self, x: Tensor) -> Tensor:
+        return self._fn(x)
