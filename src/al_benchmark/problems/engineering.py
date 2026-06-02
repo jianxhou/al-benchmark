@@ -88,4 +88,3 @@ class Piston(BaseProblem):
         V = (S / (2.0 * k)) * (torch.sqrt(A**2 + 4.0 * k * PV * Ta) - A)
         C = 2.0 * torch.pi * torch.sqrt(M / (k + S**2 * PV * (Ta / V**2)))
         return C
-    

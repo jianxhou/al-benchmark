@@ -105,7 +105,7 @@ def main():
 
     # ---- Plot ----
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-    for ax, scale in zip(axes, ["linear", "log"]):
+    for ax, scale in zip(axes, ["linear", "log"], strict=True):
         for strat_name in results:
             s = stats[strat_name]
             x = np.arange(len(s["mean"]))
@@ -157,7 +157,9 @@ def main():
     print("-" * 44)
     for strat_name in results:
         finals = results[strat_name][:, -1]
-        print(f"{strat_name:<12} {finals.mean():>10.4f} {finals.std():>10.4f} {np.median(finals):>10.4f}")
+        print(
+            f"{strat_name:<12} {finals.mean():>10.4f} {finals.std():>10.4f} {np.median(finals):>10.4f}" # noqa: E501
+        )
 
     print("\nDone.")
 

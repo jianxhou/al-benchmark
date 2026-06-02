@@ -37,3 +37,6 @@ figures/*.pdf
 # Literature (PDFs are large, don't commit)
 literature/*.pdf
 !results/.gitkeep
+
+# ruff
+.ruff_cache/
