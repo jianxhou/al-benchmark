@@ -46,3 +46,43 @@ class Borehole(BaseProblem):
         y_np = self._fn(x_np)  # (n, 1), raw flow rate (maximization)
         y = torch.tensor(y_np.ravel(), dtype=x.dtype, device=x.device)  # (n,)
         return y
+
+class Piston(BaseProblem):
+    """Piston Simulation Function (7D), a standard UQ / BO engineering benchmark.
+
+    Models the cycle time (seconds) of a piston as a function of 7 physical
+    parameters. Implemented MANUALLY from the standard formula (Surjanovic &
+    Bingham, Virtual Library of Simulation Experiments) — unlike Borehole, the
+    Piston function is NOT available in this SMT version.
+
+    Treated as MAXIMIZATION (return cycle time directly), mirroring Borehole.
+    Input order: [M, S, V0, k, P0, Ta, T0].
+
+    optimal_value is a conservative sampling/corner-based estimate: the global
+    max over the box is ~1.199 s (at a vertex; the function is near-monotone in
+    each input, and 200k random points never exceeded the corner value). We set
+    1.20 with buffer so simple regret stays non-negative. Midpoint value ~0.4644.
+    """
+
+    def __init__(self) -> None:
+        self.name = "Piston"
+        self.dim = 7
+        # rows: [lower; upper]; columns: M, S, V0, k, P0, Ta, T0
+        self.bounds = torch.tensor(
+            [
+                [30.0, 0.005, 0.002, 1000.0, 90000.0, 290.0, 340.0],
+                [60.0, 0.020, 0.010, 5000.0, 110000.0, 296.0, 360.0],
+            ],
+            dtype=torch.double,
+        )
+        self.optimal_value = 1.20
+
+    def _evaluate(self, x: Tensor) -> Tensor:
+        x = x.to(dtype=torch.double)
+        M, S, V0, k, P0, Ta, T0 = (x[..., i] for i in range(7))
+        A = P0 * S + 19.62 * M - k * V0 / S
+        PV = P0 * V0 / T0
+        V = (S / (2.0 * k)) * (torch.sqrt(A**2 + 4.0 * k * PV * Ta) - A)
+        C = 2.0 * torch.pi * torch.sqrt(M / (k + S**2 * PV * (Ta / V**2)))
+        return C
+    
