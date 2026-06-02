@@ -25,7 +25,7 @@ from scipy import stats
 
 warnings.filterwarnings("ignore")
 
-PROBLEMS = ["branin", "hartmann6", "ackley"]
+PROBLEMS = ["branin", "hartmann6", "ackley", "sixhumpcamel", "borehole", "piston"]
 STRATEGIES = ["EI", "UCB", "Random"]
 ALPHA = 0.05
 
