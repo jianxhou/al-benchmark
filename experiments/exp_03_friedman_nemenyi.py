@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import scikit_posthocs as sp
 from scipy import stats
+from scipy.stats import studentized_range
 
 warnings.filterwarnings("ignore")
 
@@ -91,29 +92,92 @@ def compute_avg_ranks(matrix: np.ndarray) -> pd.Series:
     return ranks.mean(axis=0)
 
 
-def plot_cd_diagram(avg_ranks, nemenyi_pvalues, n_blocks, output_path):
-    """Generate and save the Critical Difference diagram."""
-    fig, ax = plt.subplots(figsize=(8, 2.5))
-    sp.critical_difference_diagram(
-        ranks=avg_ranks,
-        sig_matrix=nemenyi_pvalues,
-        ax=ax,
-        label_fmt_left="{label} ({rank:.2f})  ",
-        label_fmt_right="  ({rank:.2f}) {label}",
-        text_h_margin=0.3,
-        label_props={"fontsize": 11},
-        crossbar_props={"color": None, "marker": "o"},
-        elbow_props={"color": "gray"},
-    )
-    plt.title(
-        f"Critical Difference Diagram (Nemenyi, alpha={ALPHA})\n"
-        f"N={n_blocks} blocks across {len(PROBLEMS)} problems",
-        fontsize=11,
-    )
+def plot_cd_diagram(avg_ranks, nemenyi_pvalues, n_blocks, output_path,
+                    n_problems, k, alpha=ALPHA):
+    """Generate and save a publication-quality Demsar-style CD diagram.
+
+    Draws the rank axis, a critical-difference (CD) ruler, and clique bars
+    connecting strategies whose average-rank gap is below the CD (i.e. not
+    significantly different under Nemenyi). The CD is computed analytically
+    from the studentized range statistic rather than read off the post-hoc
+    matrix, so it stays correct if N or k change.
+    """
+    # Nemenyi critical difference: CD = q_alpha * sqrt(k(k+1) / 6N)
+    q = studentized_range.ppf(1 - alpha, k, np.inf) / np.sqrt(2)
+    CD = q * np.sqrt(k * (k + 1) / (6.0 * n_blocks))
+
+    ranks_sorted = sorted(avg_ranks.items(), key=lambda kv: kv[1])
+    names = [n for n, _ in ranks_sorted]
+    vals = [v for _, v in ranks_sorted]
+
+    lo = float(np.floor(min(vals)))
+    hi = float(np.ceil(max(vals)))
+    mid = (lo + hi) / 2
+
+    fig, ax = plt.subplots(figsize=(9, 3.4), dpi=150)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    y_axis = 0.0
+    ax.plot([lo, hi], [y_axis, y_axis], color="black", linewidth=1.6, zorder=1)
+    for t in np.arange(lo, hi + 0.01, 0.5):
+        ax.plot([t, t], [y_axis, y_axis + 0.05], color="black", linewidth=1.2)
+        ax.text(t, y_axis + 0.13, f"{t:.1f}", ha="center", va="bottom", fontsize=12)
+
+    right = [(n, v) for n, v in zip(names, vals) if v <= mid]
+    left = [(n, v) for n, v in zip(names, vals) if v > mid]
+    col_r = lo - 0.30
+    col_l = hi + 0.30
+
+    def _draw(rank, name, side, level):
+        y = -0.18 - 0.22 * level
+        ax.plot([rank, rank], [y_axis, y], color="0.45", linewidth=1.4)
+        if side == "right":
+            ax.plot([rank, col_r], [y, y], color="0.45", linewidth=1.4)
+            ax.text(col_r, y, f"  {name} ({rank:.2f})", ha="left",
+                    va="center", fontsize=12)
+        else:
+            ax.plot([rank, col_l], [y, y], color="0.45", linewidth=1.4)
+            ax.text(col_l, y, f"({rank:.2f}) {name}  ", ha="right",
+                    va="center", fontsize=12)
+
+    for lvl, (n, v) in enumerate(right):
+        _draw(v, n, "right", lvl)
+    for lvl, (n, v) in enumerate(left):
+        _draw(v, n, "left", lvl)
+
+    # Clique bars: connect adjacent strategies whose rank gap < CD.
+    y_clique = -0.10
+    for i in range(len(vals) - 1):
+        if abs(vals[i] - vals[i + 1]) < CD:
+            ax.plot([vals[i], vals[i + 1]], [y_clique, y_clique],
+                    color="#c0392b", linewidth=5, solid_capstyle="round", zorder=3)
+
+    # CD ruler (top).
+    y_cd = y_axis + 0.42
+    cd_x0 = hi - 0.05
+    ax.plot([cd_x0, cd_x0 - CD], [y_cd, y_cd], color="black", linewidth=1.8)
+    for xx in (cd_x0, cd_x0 - CD):
+        ax.plot([xx, xx], [y_cd - 0.04, y_cd + 0.04], color="black", linewidth=1.8)
+    ax.text(cd_x0 - CD / 2, y_cd + 0.07, f"CD = {CD:.2f}", ha="center",
+            va="bottom", fontsize=12, fontweight="bold")
+
+    ax.text(mid, y_axis + 0.74,
+            f"Critical Difference Diagram (Nemenyi, $\\alpha$={alpha})",
+            ha="center", fontsize=13, fontweight="bold")
+    ax.text(mid, y_axis + 0.62,
+            f"N = {n_blocks} blocks ({n_problems} problems "
+            f"$\\times$ {n_blocks // n_problems} seeds), k = {k} strategies",
+            ha="center", fontsize=10, color="0.3")
+
+    ax.set_xlim(hi + 2.4, lo - 2.4)  # inverted: best rank on the right
+    ax.set_ylim(-0.78, 0.97)
+    ax.axis("off")
+    plt.subplots_adjust(left=0.01, right=0.99, top=0.98, bottom=0.05)
     output_path.parent.mkdir(exist_ok=True)
-    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.savefig(output_path, dpi=150, facecolor="white")
     plt.close()
-    print(f"  CD diagram saved to {output_path}")
+    print(f"  CD diagram saved to {output_path}  (CD={CD:.4f})")
 
 
 def main():
@@ -145,7 +209,13 @@ def main():
 
     print("\nGenerating CD diagram...")
     cd_path = figures_dir / "exp_03_cd_diagram.png"
-    plot_cd_diagram(avg_ranks, nemenyi_pvalues, n_blocks=matrix.shape[0], output_path=cd_path)
+    plot_cd_diagram(
+        avg_ranks, nemenyi_pvalues,
+        n_blocks=matrix.shape[0],
+        output_path=cd_path,
+        n_problems=len(PROBLEMS),
+        k=matrix.shape[1],
+    )
 
     summary = {
         "config": {
