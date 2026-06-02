@@ -16,6 +16,7 @@ venv/
 results/*
 *.csv
 !**/example_*.csv
+!results/exp_03_stats_summary.json
 
 # OS
 .DS_Store
@@ -33,6 +34,9 @@ Thumbs.db
 figures/*.png
 figures/*.pdf
 !figures/.gitkeep
+!figures/exp_03_cd_diagram.png
+!figures/exp_02_borehole_strategies.png
+!figures/exp_02_ackley_strategies.png
 
 # Literature (PDFs are large, don't commit)
 literature/*.pdf

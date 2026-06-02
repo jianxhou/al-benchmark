@@ -1,0 +1,47 @@
+{
+  "config": {
+    "problems": [
+      "branin",
+      "hartmann6",
+      "ackley",
+      "sixhumpcamel",
+      "borehole",
+      "piston"
+    ],
+    "strategies": [
+      "EI",
+      "UCB",
+      "Random"
+    ],
+    "alpha": 0.05,
+    "n_blocks": 60
+  },
+  "friedman": {
+    "chi_square": 83.70711297071131,
+    "p_value": 6.656276749003202e-19,
+    "df": 2,
+    "rejected_H0": true
+  },
+  "nemenyi_pvalues": {
+    "EI": {
+      "EI": 1.0,
+      "UCB": 0.310054,
+      "Random": 0.0
+    },
+    "UCB": {
+      "EI": 0.310054,
+      "UCB": 1.0,
+      "Random": 0.0
+    },
+    "Random": {
+      "EI": 0.0,
+      "UCB": 0.0,
+      "Random": 1.0
+    }
+  },
+  "average_ranks": {
+    "EI": 1.6583,
+    "UCB": 1.3917,
+    "Random": 2.95
+  }
+}
