@@ -11,37 +11,48 @@
     "strategies": [
       "EI",
       "UCB",
+      "Uncertainty",
       "Random"
     ],
     "alpha": 0.05,
     "n_blocks": 60
   },
   "friedman": {
-    "chi_square": 83.70711297071131,
-    "p_value": 6.656276749003202e-19,
-    "df": 2,
+    "chi_square": 128.815699658703,
+    "p_value": 9.733829173297537e-28,
+    "df": 3,
     "rejected_H0": true
   },
   "nemenyi_pvalues": {
     "EI": {
       "EI": 1.0,
-      "UCB": 0.310054,
+      "UCB": 0.40426,
+      "Uncertainty": 0.0,
       "Random": 0.0
     },
     "UCB": {
-      "EI": 0.310054,
+      "EI": 0.40426,
       "UCB": 1.0,
+      "Uncertainty": 0.0,
       "Random": 0.0
+    },
+    "Uncertainty": {
+      "EI": 0.0,
+      "UCB": 0.0,
+      "Uncertainty": 1.0,
+      "Random": 0.974349
     },
     "Random": {
       "EI": 0.0,
       "UCB": 0.0,
+      "Uncertainty": 0.974349,
       "Random": 1.0
     }
   },
   "average_ranks": {
-    "EI": 1.6583,
+    "EI": 1.7583,
     "UCB": 1.3917,
-    "Random": 2.95
+    "Uncertainty": 3.375,
+    "Random": 3.475
   }
 }

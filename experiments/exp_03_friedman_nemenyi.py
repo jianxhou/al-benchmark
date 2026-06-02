@@ -27,7 +27,7 @@ from scipy.stats import studentized_range
 warnings.filterwarnings("ignore")
 
 PROBLEMS = ["branin", "hartmann6", "ackley", "sixhumpcamel", "borehole", "piston"]
-STRATEGIES = ["EI", "UCB", "Random"]
+STRATEGIES = ["EI", "UCB", "Uncertainty", "Random"]
 ALPHA = 0.05
 
 
