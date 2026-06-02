@@ -124,8 +124,8 @@ def plot_cd_diagram(avg_ranks, nemenyi_pvalues, n_blocks, output_path,
         ax.plot([t, t], [y_axis, y_axis + 0.05], color="black", linewidth=1.2)
         ax.text(t, y_axis + 0.13, f"{t:.1f}", ha="center", va="bottom", fontsize=12)
 
-    right = [(n, v) for n, v in zip(names, vals) if v <= mid]
-    left = [(n, v) for n, v in zip(names, vals) if v > mid]
+    right = [(n, v) for n, v in zip(names, vals, strict=True) if v <= mid]
+    left = [(n, v) for n, v in zip(names, vals, strict=True) if v > mid]
     col_r = lo - 0.30
     col_l = hi + 0.30
 
