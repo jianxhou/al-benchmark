@@ -24,6 +24,7 @@ from al_benchmark.problems.synthetic import Ackley, Branin, Hartmann6, SixHumpCa
 from al_benchmark.strategies.ei import EI
 from al_benchmark.strategies.random_strategy import Random
 from al_benchmark.strategies.ucb import UCB
+from al_benchmark.strategies.uncertainty import Uncertainty
 
 warnings.filterwarnings("ignore")
 
@@ -41,10 +42,11 @@ PROBLEMS = {
 STRATEGIES = {
     "EI": lambda: EI(),
     "UCB": lambda: UCB(beta=2.0),
+    "Uncertainty": lambda: Uncertainty(),
     "Random": lambda: Random(),
 }
 
-COLORS = {"EI": "#1f77b4", "UCB": "#2ca02c", "Random": "#d62728"}
+COLORS = {"EI": "#1f77b4", "UCB": "#2ca02c", "Uncertainty": "#9467bd", "Random": "#d62728"}
 
 
 def main():
