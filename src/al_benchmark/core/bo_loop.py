@@ -73,7 +73,7 @@ def run_bo(
     surrogate = GPSurrogate()
     for i in range(n_iter):
         # Fit surrogate to current data
-        model = surrogate.fit(train_x, train_y)
+        model = surrogate.fit(train_x, train_y, problem.bounds)
 
         # Strategy picks the next point
         candidate = strategy.select_next(
