@@ -15,12 +15,8 @@ A summary of papers read for this project. Each entry includes:
 
 ---
 
-## (Entries will be added here as papers are read)
----
-
 ## 1. Frazier (2018) — A Tutorial on Bayesian Optimization
 
-**Read on**: 2026-05-28
 **arXiv**: 1807.02811
 **Sections read**: 1 (Introduction), 2 (Gaussian Process Regression), 3 (Acquisition Functions)
 **Status**: Core concepts understood; will revisit Section 4 (algorithm) and Section 5 (extensions) when needed for Phase 2 work on qEI.
@@ -127,3 +123,64 @@ In higher dimensions, the GP surrogate is inherently inaccurate. So even a purel
 - [ ] If Phase 2 time permits, add `EpsilonGreedy(epsilon=0.1)` as a fourth acquisition strategy. Easy to implement.
 - [ ] In my paper Discussion, cite De Ath et al. 2019 as supporting evidence for the "EI ≈ UCB" observation.
 - [ ] Look up the references they cite for "GP uncertainty is poorly calibrated in high D" — this is methodologically important for my Ackley result.
+
+---
+
+## Shahriari, B., Swersky, K., Wang, Z., Adams, R. P., & de Freitas, N. (2016).
+### "Taking the Human Out of the Loop: A Review of Bayesian Optimization"
+### Proceedings of the IEEE, 104(1)
+
+**Read**: Acquisition functions (PI/EI/UCB/Thompson/ES), surrogate models (GP-focused, RF), high-dimensional BO discussion.
+
+### Core thesis
+
+A broad survey framing BO as a *system* of two interacting components rather than a single algorithm: a **surrogate model** that encodes our beliefs about the unknown function and its uncertainty, and an **acquisition function** that uses those beliefs to decide where to sample next. The paper's most practically important claim is that the choice of surrogate model often matters more than the fine-grained choice of acquisition function — get the model, kernel, noise, and dimensional structure right first, then worry about EI vs UCB vs Thompson. BO is positioned as best-suited to black-box, expensive, gradient-free, non-convex/multimodal problems of modest dimensionality.
+
+### Acquisition functions — the comparison
+
+The Bayes-optimal sequential policy is generally intractable, so BO relies on **myopic heuristics** that each pick the locally most valuable point. All trade off exploitation (high posterior mean) against exploration (high posterior variance):
+
+- **PI (Probability of Improvement)** — probability of exceeding a target τ. Simple but ignores *how much* it exceeds, so it turns greedy/over-exploitative once τ is set to the current best (its picks sit close to the incumbent).
+- **EI (Expected Improvement)** — expected *magnitude* of improvement over τ, not just the probability. More robust than PI: visits promising regions but also weights high-uncertainty regions for their upside. Setting τ to the current best is reasonable for EI even though it's too greedy for PI.
+- **UCB / GP-UCB** — optimism under uncertainty: α(x) = μ_n(x) + β_n·σ_n(x). β tunes exploration. Has theoretical regret guarantees, but performance depends on the β schedule.
+- **Thompson Sampling** — sample a function from the posterior and optimize it. Conceptually simple, naturally balances explore/exploit, good for batch/delayed feedback; but continuous-GP sampling needs approximation (e.g. spectral) and the paper notes it can over-explore in high dimensions.
+- **ES / PES (Entropy Search)** — information-based: maximize the information gained about the *location of the optimizer* x*, rather than the value at x. Most directly aligned with "find the optimum," but computationally heavy and approximation-dependent.
+
+The paper's stance: acquisition functions matter, but don't fetishize any single one — surrogate adequacy usually dominates.
+
+### Surrogate models
+
+GP is the standard because it natively provides the posterior mean and *principled* uncertainty that acquisition functions need. A GP is determined by a (usually constant) prior mean and a kernel controlling smoothness/length-scales. Key points:
+
+- **Kernel choice**: Matérn (ν controls smoothness) vs squared-exponential (extremely smooth). **ARD kernels** give each dimension its own length-scale, which doubles as a relevance signal for which inputs matter.
+- **GP strength**: even far from data it falls back to the prior with *large* uncertainty — better for exploration than an over-confident model.
+- **GP weakness**: exact inference is O(n³) (covariance inversion / Cholesky), re-incurred when hyperparameters update; sparse GPs (SPGP, SSGP) scale better but introduce uncertainty artifacts (variance pinching near pseudo-inputs; spurious oscillation far from data).
+- **Random forest** (SMAC): scales well, handles categorical/conditional variables, but uncertainty is less principled, can be confidently wrong far from data, and the response surface is non-differentiable (no gradient-based acquisition optimization).
+
+### High-dimensional BO
+
+The survey is cautious: BO suits *modest* dimensionality; high-D is the bottleneck because covering the space needs exponentially many samples (curse of dimensionality). Three coping strategies discussed:
+1. **Sparsity / variable selection** — identify the few relevant dimensions (e.g. Chen et al.'s sequential likelihood-ratio tests), but assumes axis-aligned relevance.
+2. **RF implicit feature selection** — SMAC's trees subsample features; strong on some high-D algorithm-configuration tasks, weak theory.
+3. **Low effective dimensionality** — many high-D problems have few truly-active dimensions; random embeddings (REMBO-style) optimize in a low-D subspace that still contains the optimum.
+
+### Three takeaways relevant to my project
+
+1. **"Surrogate > acquisition" is the theoretical backing for today's normalization fix.** My Borehole/Piston results collapsed BO toward Random *not* because EI/UCB were inadequate, but because the un-normalized GP couldn't learn sensible per-dimension length-scales across inputs spanning ~10⁵. Adding input Normalize + output Standardize recovered 1-2 orders of magnitude. This is exactly Shahriari's point: I had a surrogate problem masquerading as an acquisition problem. Worth foregrounding in the report's Methods/Discussion.
+
+2. **The survey explains my EI ≈ UCB result (Nemenyi p=0.31, N=60).** Both EI and UCB are well-behaved explore/exploit heuristics on a GP; the paper's framing ("don't over-index on the specific acquisition") predicts they should be hard to separate on smooth benchmarks — which is precisely what my 6-problem Friedman/Nemenyi shows. Combined with De Ath (2019)'s Pareto-front argument, I now have two independent literature supports for the same empirical finding.
+
+3. **The high-D section frames my Ackley-10D degradation correctly.** My EI-over-Random advantage shrinks sharply in 10D. Shahriari attributes this to coverage cost + GP uncertainty quality in high-D, and points to effective-dimensionality / embedding methods as the escape — a natural "future work" hook (and a contrast: Ackley has *no* low effective dimensionality, so it's a worst case by construction).
+
+### Possible citations for my paper (paraphrased — no direct quotes copied)
+
+- BO suits black-box, expensive, gradient-free, modest-dimensional problems (Sec. 1) — to scope my d ≤ 10 problem suite.
+- The choice of surrogate/statistical model often matters more than the fine choice of acquisition function — to motivate why I treat the GP normalization fix as a first-class methodological result, not a footnote.
+- GP's fallback to a high-variance prior far from data is what makes its uncertainty useful for exploration (surrogate section) — to justify GP over RF for my smooth synthetic + engineering functions.
+- Exact GP inference is O(n³), bounding practical n — to justify my 20-iteration budget and small-n regime.
+
+### Open questions / to revisit
+
+1. **Kernel ablation (ties back to Frazier's open question).** Both Frazier and Shahriari flag Matérn vs RBF as consequential. BoTorch's SingleTaskGP defaults to RBF. With normalization now in place, an RBF-vs-Matérn-5/2 ablation would be cleaner to interpret — Phase 2 candidate.
+2. **β schedule for UCB.** Shahriari (like Frazier) notes UCB's performance depends on β; I use fixed β=2. Does a theory-motivated β_t schedule change the EI≈UCB picture?
+3. **Does "surrogate > acquisition" extend to RF?** My Phase 2 plan includes an RF surrogate. Shahriari warns RF uncertainty is less principled and the surface is non-differentiable — so RF + EI/UCB may behave very differently. Worth testing whether the normalization lesson even applies to RF (it shouldn't need input scaling the same way).
