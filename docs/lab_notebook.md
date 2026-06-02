@@ -151,3 +151,76 @@ End of Day 2: 6 commits on `main`, all pushed to `origin/main`.
 ### Git checkpoint
 
 End of Day 3: 12 commits on `main` (will be 12 after today's final commits), all pushed to `origin/main`.
+
+---
+
+## Day 4
+
+### Done
+
+**Problem suite completion (Phase 1 target: 6 problems)**:
+- Added `Piston` (7D) to `engineering.py` — implemented manually from the standard Piston Simulation Function formula (Surjanovic & Bingham VLSE), since Piston is NOT in this SMT version. Verified at known points: midpoint cycle time C=0.4644s; range [0.172, 1.123]s over 200k random points; global max at a box vertex (corner sweep of 2⁷=128 vertices gave 1.199s). Set `optimal_value=1.20` (vertex + buffer). MAXIMIZATION, mirrors Borehole pattern.
+- Problem suite now complete: Branin(2D), Hartmann6(6D), Ackley(10D), SixHumpCamel(2D), Borehole(8D), Piston(7D) — dimensions 2/2/6/7/8/10.
+
+**GP normalization fix (the headline — a real bug, caught by the engineering functions)**:
+- First 10-seed runs on Borehole/Piston showed BO ≈ Random (Piston: EI 0.41 / UCB 0.39 / Random 0.40 — indistinguishable). Red flag: on a smooth 7D analytic function, EI should not tie random search.
+- Root cause: `GPSurrogate` fit a `SingleTaskGP` on **raw, un-normalized** inputs/outputs. The synthetic functions had near-uniform scales (Branin, Hartmann, Ackley, SixHumpCamel) so it never surfaced — but Borehole/Piston inputs span ~5-6 orders of magnitude (e.g. Piston k~10³, P0~10⁵ vs S~10⁻³), so the GP could not learn sensible per-dimension lengthscales and BO degraded toward random search.
+- Fix: added `input_transform=Normalize(d, bounds=problem.bounds)` + `outcome_transform=Standardize(m=1)` to `GPSurrogate.fit`, following standard BoTorch practice. This required threading `bounds` from `bo_loop` into `fit` (signature now `fit(train_x, train_y, bounds)`).
+- **Regression-tested before trusting it**: Branin (synthetic, should not regress) → EI mean improved 0.0605 → 0.0338. Piston (engineering, should recover) → EI 0.41→0.019 (24×), UCB 0.39→0.0019 (155×), while Random stayed ~0.40 (it doesn't use the GP — clean control proving the fault was in the surrogate, not the problem).
+
+**Borehole optimal_value correction (a downstream consequence of the fix)**:
+- Post-normalization, Borehole produced **negative regret** (EI/UCB ~ −24): BO was finding values above the old `optimal_value=285` (a 200k-random-point estimate from before normalization, when BO was half-broken and never reached the high-value region).
+- Re-estimated the true optimum: Borehole is monotone in each input, so its max lies at a box vertex. A 2⁸=256-corner sweep gave 309.5756 (20M random points only reached 294 — random sampling systematically undershoots the vertex, exactly why 285 was too low). UCB's best converged to 309.5756 precisely, confirming it.
+- Set `optimal_value=310.0` (vertex + buffer) and updated the docstring. Re-ran Borehole only (other 5 unaffected): all regrets now non-negative (UCB median 0.42, EI median 2.41).
+
+**Full 6-problem benchmark (all with normalized GP)**:
+- Final mean regret — Branin: EI 0.034/UCB 0.036/Rand 1.58; Hartmann6: 0.222/0.415/1.81; Ackley: 4.05/4.36/8.13; SixHumpCamel: 0.147/0.314/0.92; Borehole: 8.63/0.60/113.9; Piston: 0.019/0.002/0.41. BO >> Random on all six.
+
+**Statistics re-run on 6-problem suite (N=60 blocks)**:
+- Extended `exp_03` PROBLEMS to all 6; Friedman input now (60, 3) vs Day 3's (30, 3).
+- **Friedman**: χ²(2)=83.71, p=6.66×10⁻¹⁹ → reject H0 (vs Day 3's χ²=28.53, p=6.4×10⁻⁷ — signal ~3× stronger).
+- **Nemenyi**: EI vs UCB p=0.31 (NOT significant); both vs Random p<1×10⁻⁶.
+- **Avg ranks**: UCB 1.39 < EI 1.66 << Random 2.95 (Random near the 3.0 ceiling — it's bottom in almost every block).
+- CD diagram + stats summary regenerated.
+
+**Reading**:
+- Shahriari et al. (2016) "Taking the Human Out of the Loop". Reading log entry written.
+- Central takeaway — "surrogate model choice often matters more than the fine choice of acquisition function" — is the exact theoretical backing for today's normalization fix.
+
+### Learned
+
+- **The "BO ≈ Random" result was a surrogate bug, not a finding.** This is the single most important lesson of the day. Before debugging it would have been tempting to write "BO offers no advantage on Piston" in the report. The discipline of asking "is this plausible?" (no — not on a smooth 7D function) and then isolating the cause (Random unchanged → fault is in the GP, not the problem) is what separated a wrong conclusion from a real fix.
+- **Engineering benchmarks earn their place by exposing scale sensitivity.** The synthetic functions never revealed the normalization gap because their scales were benign. Borehole/Piston (physical inputs across many orders of magnitude) are a realistic stress test that uniform-scale toy functions can't provide — a justification for including them beyond "more problems = better".
+- **A good fix can falsify your own prior assumptions.** Normalization made BO strong enough to beat the old Borehole `optimal_value=285`, surfacing as negative regret. The "bug" (negative regret) was actually evidence the fix worked — and it forced a more correct problem definition (vertex-based optimum) as a bonus.
+- **Random sampling undershoots vertex optima.** 20M random points reached only 294 on Borehole vs the true corner max 309.58. For monotone functions, evaluate corners — don't trust sampling-based bounds.
+- **More blocks = more power, same conclusion.** Going 3→6 problems (N=30→60) tripled the Friedman χ² while leaving the qualitative story intact (EI≈UCB >> Random). This is the robustness check that makes the finding defensible: it's not an artifact of which 3 problems I happened to pick.
+- **Two papers now independently support EI≈UCB**: De Ath (2019)'s Pareto-front argument and Shahriari (2016)'s "don't over-index on acquisition choice".
+
+### Issues encountered
+
+- `python -c "..."` probe locked zsh into `dquote>` again (recurring) — used the single-line / heredoc-free form.
+- A stray `%` got pasted in front of a command → `zsh: fg: job not found: python`. Re-typed the command cleanly.
+- Temporary verification code accidentally left at the bottom of `engineering.py` caused a self-import and printed its output twice; deleted it (verification belongs in `tests/`, not the module body).
+- Ruff/import ordering: kept the `engineering` import before `synthetic` (alphabetical, isort convention) when extending exp_02's imports.
+
+### Design decisions made
+
+- **Explicit `problem.bounds` for input normalization** rather than letting `Normalize` infer min/max from the training data. Inferred bounds would drift as data accumulates (and the n_init Sobol points may miss the box corners); explicit bounds give the GP a fixed scale tied to the true search space, and are more reproducible. Documented in `gp.py`.
+- **Piston implemented manually, not via SMT.** Fills the 7D gap, decouples from SMT version quirks (SMT renamed Borehole→WaterFlow; Piston isn't present at all), and demonstrates implementation skill. Conservative vertex-based `optimal_value`, mirroring Borehole.
+- **`optimal_value` as vertex max + small buffer** (Piston 1.20, Borehole 310.0) to guarantee non-negative simple regret while staying as tight as possible. Consistent with using closed-form optima where they exist (Branin, Hartmann, Ackley, SixHumpCamel).
+- **Two separate commits for the day's core changes** — normalization fix (gp.py + bo_loop.py) kept distinct from suite registration + Borehole correction (exp_02 + engineering.py) — so the bug fix is independently reviewable in the git history.
+
+### Phase 1 status
+
+All Phase 1 hard-guarantee deliverables are now in place except the 8-page report: 6 problems ✅, 4 acquisitions (EI/UCB/Random built; Uncertainty still not built), GP surrogate ✅ (now normalized), Friedman+Nemenyi on full suite ✅, public repo ✅.
+
+### Next session (Day 5)
+
+- Begin drafting the technical report — Methods section first (BO loop, GP surrogate + normalization, acquisition functions, problem suite, statistical methodology).
+- Polish the CD diagram to publication quality (CD ruler, larger fonts) — deferred since Day 3.
+- Consider the still-unbuilt Uncertainty acquisition (Phase 1 listed 4 acquisitions) and ε-greedy (De Ath / Phase 2).
+- Clean up the remaining lint warnings flagged in `gp.py` / PROBLEMS panel.
+
+### Git checkpoint
+
+End of Day 4: main has the Piston commit, the normalization-fix commit, the 6-problem-suite + Borehole-correction commit, the exp_03 N=60 commit, the Shahriari reading-log commit, and (after this entry) the Day 4 lab-notebook commit — all pushed to `origin/main`.
