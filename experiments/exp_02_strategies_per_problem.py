@@ -19,7 +19,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from al_benchmark.core.bo_loop import run_bo
-from al_benchmark.problems.synthetic import Ackley, Branin, Hartmann6
+from al_benchmark.problems.engineering import Borehole, Piston
+from al_benchmark.problems.synthetic import Ackley, Branin, Hartmann6, SixHumpCamel
 from al_benchmark.strategies.ei import EI
 from al_benchmark.strategies.random_strategy import Random
 from al_benchmark.strategies.ucb import UCB
@@ -31,6 +32,9 @@ PROBLEMS = {
     "Branin": lambda: Branin(),
     "Hartmann6": lambda: Hartmann6(),
     "Ackley": lambda: Ackley(),
+    "SixHumpCamel": lambda: SixHumpCamel(),
+    "Borehole": lambda: Borehole(),
+    "Piston": lambda: Piston(),
 }
 
 # Strategy registry: name -> factory function

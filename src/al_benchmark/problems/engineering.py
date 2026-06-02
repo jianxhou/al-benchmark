@@ -23,9 +23,12 @@ class Borehole(BaseProblem):
     Treated here as a MAXIMIZATION problem (maximize water flow rate), matching
     common usage in the BO literature. SMT returns the raw flow rate directly.
 
-    optimal_value is a conservative sampling-based estimate (200k random points
-    gave a max of ~280.85; we set 285.0 with buffer to keep regret non-negative).
-    The exact analytical optimum has no simple closed form.
+    Borehole is monotone in each input, so its global maximum lies at a box
+    vertex. Evaluating all 2^8 = 256 corners gives a max of 309.5756; we set
+    optimal_value = 310.0 with a small buffer to keep simple regret non-negative.
+    (An earlier random-sampling estimate of ~285 was too low — it never reached
+    the corner — which surfaced as negative regret once input normalization let
+    BO actually find the optimum.)
     """
 
     def __init__(self) -> None:
@@ -38,7 +41,7 @@ class Borehole(BaseProblem):
         xlimits = self._fn.xlimits  # (8, 2)
         self.bounds = torch.tensor(xlimits.T, dtype=torch.float64)  # (2, 8)
         # Conservative estimate of the max flow rate over the domain (see docstring)
-        self.optimal_value = 285.0
+        self.optimal_value = 310.0
 
     def _evaluate(self, x: Tensor) -> Tensor:
         # SMT expects a (n, dim) numpy float array and returns (n, 1) numpy
