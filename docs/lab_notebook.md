@@ -224,3 +224,73 @@ All Phase 1 hard-guarantee deliverables are now in place except the 8-page repor
 ### Git checkpoint
 
 End of Day 4: main has the Piston commit, the normalization-fix commit, the 6-problem-suite + Borehole-correction commit, the exp_03 N=60 commit, the Shahriari reading-log commit, and (after this entry) the Day 4 lab-notebook commit — all pushed to `origin/main`.
+
+
+---
+
+## Day 5
+
+### Done
+
+**Lint cleanup (project now fully green)**:
+- Installed Ruff as a CLI (`pip install ruff`) in addition to the VSCode extension, so the whole project can be checked from the terminal.
+- `ruff check --fix` auto-fixed trailing-newline (W292) and blank-line-whitespace (W293) issues in engineering.py, gp.py, synthetic.py.
+- Manually fixed the remaining ones: added `strict=True` to all `zip()` calls (B905) in exp_02 and the new CD-diagram code; added `# noqa: E501` to the intentionally-long summary print line in exp_02.
+- Added `.ruff_cache/` to `.gitignore`.
+
+**Publication-quality CD diagram**:
+- The scikit-posthocs `critical_difference_diagram` default render lacked a CD ruler and used the dark editor background — not paper-ready.
+- Rewrote `plot_cd_diagram` from scratch: white background, larger fonts, a proper **CD ruler** annotating the critical difference, red clique bars connecting statistically-indistinguishable strategies, and labels that don't overlap the leader lines.
+- The CD value is now computed analytically from the studentized range statistic (`CD = q_alpha * sqrt(k(k+1)/6N)`) inside the function, so it stays correct if N or k change — it is no longer read off the post-hoc matrix.
+
+**Fourth acquisition strategy: Uncertainty (pure exploration)**:
+- Added `strategies/uncertainty.py` wrapping BoTorch's `PosteriorStandardDeviation` — selects the point of maximum posterior std, ignoring the posterior mean entirely. Interface identical to UCB, so no changes to `run_bo` or the registry pattern were needed.
+- Probed BoTorch 0.17.2 first to confirm `PosteriorStandardDeviation(model=...)` plugs straight into `optimize_acqf` (it does). A tiny end-to-end sanity check picked a high-uncertainty box corner, as expected for pure exploration.
+- Registered it in exp_02 (with a distinct plot color) between UCB and Random, reflecting the exploration-exploitation spectrum: EI/UCB (balanced) -> Uncertainty (pure exploration, uses GP) -> Random (pure exploration, no GP).
+
+**Full 4-strategy benchmark (4 strategies x 6 problems x 10 seeds = 240 runs)**:
+- Final mean regret — Branin: EI 0.034/UCB 0.036/Unc 2.667/Rand 1.583; Hartmann6: 0.222/0.415/2.030/1.807; Ackley: 4.05/4.36/8.37/8.13; SixHumpCamel: 0.147/0.314/0.868/0.920; Borehole: 8.63/0.60/19.88/113.9; Piston: 0.019/0.002/0.087/0.409.
+- Uncertainty performs poorly across the board — on the smooth low-D problems it ties Random or is *worse* (Branin 2.67 vs Random 1.58); it only beats Random on the multi-scale engineering functions (Borehole, Piston).
+
+**Statistics re-run on 4 strategies (N=60, k=4)**:
+- Extended exp_03 STRATEGIES to all four; Friedman input now (60, 4).
+- **Friedman**: χ²(3) = 128.82, p = 9.73×10⁻²⁸ → reject H0 (vs the 3-strategy χ²=83.7 — even stronger).
+- **Nemenyi**: EI vs UCB p=0.40 (NS); Uncertainty vs Random p=0.97 (NS); both balanced strategies vs both pure-exploration strategies p<1×10⁻⁶ (significant).
+- **Avg ranks**: UCB 1.39 < EI 1.76 << Uncertainty 3.38 ≈ Random 3.48.
+- The CD diagram now shows **two cliques**: {UCB, EI} and {Uncertainty, Random}, separated by a gap far exceeding CD=0.61.
+
+**GitHub presentation**:
+- Added `.gitignore` exceptions to track three display figures (CD diagram, Borehole and Ackley strategy curves) plus `exp_03_stats_summary.json`, so results are visible on the repo page without cloning and running. The bulk of generated figures/results stay ignored.
+
+### Learned
+
+- **Pure exploration is no better than random search.** This is the headline finding of adding Uncertainty. It uses the *same* GP as EI/UCB, yet ranks statistically indistinguishable from Random (Nemenyi p=0.97). This isolates *why* BO works: the value is not in "using a GP" — it is in **balancing exploration with exploitation**. Uncertainty explores with the GP but never exploits, and that is enough to make it as bad as blind random search. Two independent literature anchors (De Ath 2019's Pareto-front view, Shahriari 2016's "surrogate matters more than acquisition, but balance matters most") predict exactly this.
+- **A four-way comparison tells a cleaner story than three.** With three strategies the result was "EI≈UCB >> Random". With four, the same data resolves into two clean equivalence classes — balanced vs pure-exploration — which is a more complete and more defensible scientific statement, and a much better figure.
+- **Don't trust a library's default plot for a paper.** scikit-posthocs draws a correct-but-ugly CD diagram with no CD ruler. Re-deriving the CD analytically and drawing the figure by hand gave full control and a publication-ready result. The studentized-range formula also documents the statistics explicitly in code.
+- **Probe an unfamiliar acquisition before wrapping it.** Confirming `PosteriorStandardDeviation`'s constructor signature and end-to-end behaviour in BoTorch 0.17.2 took two minutes and avoided guessing — same discipline that paid off for the Normalize/Standardize API on Day 4.
+
+### Issues encountered
+
+- `ruff` was not on PATH initially (only the VSCode extension was installed) — `command not found`. Fixed with `pip install ruff`.
+- A stray `%` pasted in front of a command gave `zsh: fg: job not found` (recurring paste artifact). Re-typed cleanly.
+- First CD-diagram rewrites had leader lines overlapping the strategy labels (strikethrough effect). Root cause was the text horizontal-alignment direction; fixed by writing labels *outward* from a fixed label column and widening the x-margins (no `bbox_inches="tight"`, which had been distorting the manual coordinates).
+
+### Design decisions made
+
+- **Uncertainty placed between UCB and Random in the registry**, not appended at the end, so the registry order reads as a clean exploitation→exploration spectrum.
+- **CD computed analytically, not read from the post-hoc matrix**, so the ruler stays correct under changes to N or k.
+- **Selective figure tracking, not blanket un-ignoring `figures/`.** Only three display figures + the small stats-summary JSON are committed; raw trajectory JSONs and per-problem curves stay ignored. Keeps the repo clean while making the headline results visible on GitHub.
+
+### Phase 1 status
+
+All Phase 1 hard-guarantee deliverables are now complete **except the 8-page report**: 6 problems ✅, 4 acquisitions ✅ (EI/UCB/Uncertainty/Random — Uncertainty added today), normalized GP surrogate ✅, Friedman+Nemenyi on the full 4×6 suite ✅, public repo ✅.
+
+### Next session (Day 6)
+
+- Begin drafting the technical report — Methods section first (BO loop, GP surrogate + normalization, the four acquisition functions, the 6-problem suite, statistical methodology).
+- Update the (now outdated, Day-3-era) README to reflect 6 problems, 4 strategies, normalization, and the N=60 results; embed the three display figures.
+- Reuse figure captions between README and report.
+
+### Git checkpoint
+
+End of Day 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertainty strategy + exp_02 registration, the 4-strategy Friedman extension, the selected-figures tracking commit, and (after this entry) the Day 5 lab-notebook commit — all pushed to `origin/main`.
