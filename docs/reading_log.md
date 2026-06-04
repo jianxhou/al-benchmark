@@ -184,3 +184,63 @@ The survey is cautious: BO suits *modest* dimensionality; high-D is the bottlene
 1. **Kernel ablation (ties back to Frazier's open question).** Both Frazier and Shahriari flag Matérn vs RBF as consequential. BoTorch's SingleTaskGP defaults to RBF. With normalization now in place, an RBF-vs-Matérn-5/2 ablation would be cleaner to interpret — Phase 2 candidate.
 2. **β schedule for UCB.** Shahriari (like Frazier) notes UCB's performance depends on β; I use fixed β=2. Does a theory-motivated β_t schedule change the EI≈UCB picture?
 3. **Does "surrogate > acquisition" extend to RF?** My Phase 2 plan includes an RF surrogate. Shahriari warns RF uncertainty is less principled and the surface is non-differentiable — so RF + EI/UCB may behave very differently. Worth testing whether the normalization lesson even applies to RF (it shouldn't need input scaling the same way).
+
+---
+
+## Demšar (2006) — Statistical Comparisons of Classifiers over Multiple Data Sets
+
+*Journal of Machine Learning Research, 7:1–30.*
+
+### Summary (own words)
+
+Demšar examines how to correctly compare multiple algorithms across multiple
+datasets — a setting that breaks the assumptions of the naive approaches people
+often default to. He argues that comparing mean performance with repeated paired
+t-tests is statistically unsound here: performance scores across heterogeneous
+datasets are not commensurable, are usually non-Gaussian, and repeated pairwise
+testing inflates the family-wise type-I error. Instead he recommends
+non-parametric, rank-based procedures. For comparing several algorithms over many
+datasets, the recommended workflow is the Friedman test (a non-parametric omnibus
+test on ranks) followed, on rejection, by a post-hoc test — Nemenyi for all-pairs
+comparisons, or Bonferroni–Dunn when comparing everything against a single control.
+He also introduces the Critical Difference (CD) diagram as a compact visualization
+of which algorithms are statistically separable.
+
+### Key takeaways (tied to this project)
+
+1. **Rank-based, not mean-based.** Regret values across my six problems live on
+   wildly different scales (Branin ~0.03 vs Borehole ~100s); averaging or
+   t-testing raw regret across them is meaningless. Ranking within each
+   (problem, seed) block and testing the ranks is exactly Demšar's prescription —
+   this is *why* the project uses Friedman + Nemenyi rather than mean ± std.
+
+2. **Omnibus before post-hoc.** Demšar's two-stage protocol (Friedman first, only
+   run pairwise Nemenyi if the omnibus null is rejected) is the structure of
+   exp_03 — it controls the type-I error that 6 independent pairwise tests would
+   inflate.
+
+3. **CD diagram as the reporting standard.** The CD diagram is Demšar's own
+   recommended visualization; using it (rather than a table of p-values alone)
+   makes the two-clique result immediately legible and follows community
+   convention for this kind of comparison.
+
+### Quotable points (paraphrased)
+
+- Comparing classifiers over multiple datasets needs non-parametric rank tests,
+  because per-dataset scores are not drawn from a common commensurable
+  distribution and parametric assumptions (normality, homoscedasticity) generally
+  fail.
+- The Friedman test with a suitable post-hoc (Nemenyi for all-pairs) is the
+  recommended general procedure; the critical difference quantifies the minimum
+  average-rank gap that counts as significant.
+
+### Open questions
+
+- Demšar focuses on classifier accuracy; my "datasets" are (problem, seed) blocks
+  on a single optimization metric. The rank machinery transfers cleanly, but the
+  independence assumption across blocks (10 seeds of the same problem are not
+  fully independent of each other) is worth thinking about — does within-problem
+  seed correlation weaken the Friedman assumptions? (Likely minor at N=60, but
+  noted.)
+- For comparing my best strategy (UCB) against all others specifically, would
+  Bonferroni–Dunn against UCB-as-control be more powerful than all-pairs Nemenyi?
