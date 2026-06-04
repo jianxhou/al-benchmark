@@ -1,10 +1,10 @@
 # Lab Notebook
 
-A daily log of what I did, what I learned, and what's next.
+A log of what I did, what I learned, and what's next.
 
 ---
 
-## Day 1
+## Part 1
 
 ### Done
 - Conda env `oas-test` set up with all core dependencies (BoTorch 0.17.2, OpenAeroStruct 2.12.0, SMT, scikit-posthocs, etc.)
@@ -22,28 +22,27 @@ A daily log of what I did, what I learned, and what's next.
 
 ### Issues encountered
 - `.gitignore` initially didn't cover `results/*.json`, fixed by changing rule to `results/*` with exception for `.gitkeep`
-- `python -c "..."` multi-line caused zsh `dquote>` issue, switched to single-line commands
 
-### Next session (Day 2)
+### Next session (Part 2)
 - Read Frazier 2018 tutorial Section 1-3 + reading log entry
 - Refactor notebook code into `src/al_benchmark/` modular structure
 - Add Random and UCB acquisition strategies
 
 ---
 
-## Day 2
+## Part 2
 
 ### Done
 
 **Modular code refactor** (this is the headline):
-- Refactored Day 1 notebook into a proper Python package under `src/al_benchmark/`
+- Refactored Part 1 notebook into a proper Python package under `src/al_benchmark/`
 - Created abstract base classes: `BaseProblem` and `BaseStrategy` (ABC pattern, abstract methods enforce interface contracts)
 - Implemented `Branin` problem (inherits `BaseProblem`)
 - Implemented `EI`, `UCB`, `Random` strategies (all inherit `BaseStrategy`)
 - Implemented `GPSurrogate` (wraps BoTorch's `SingleTaskGP`)
 - Implemented `run_bo` main loop in `core/bo_loop.py` that ties everything together
 - Project installed as editable package via `pip install -e .` (pyproject.toml created)
-- **Verified equivalence**: modular code reproduces Day 1 notebook result exactly (EI on Branin, seed 42 → regret 0.028791, matches Day 1's 0.029 to 4 decimal places)
+- **Verified equivalence**: modular code reproduces Part 1 notebook result exactly (EI on Branin, seed 42 → regret 0.028791, matches Part 1's 0.029 to 4 decimal places)
 
 **First multi-seed benchmark**:
 - Ran EI, UCB(beta=2), Random on Branin for 10 seeds × 20 iterations each
@@ -58,7 +57,7 @@ A daily log of what I did, what I learned, and what's next.
 
 ### Learned
 
-- The value of modular code: adding UCB and Random after EI required ~30 lines each, all reusing the same `run_bo` loop. Day 1's notebook would have needed full copy-paste.
+- The value of modular code: adding UCB and Random after EI required ~30 lines each, all reusing the same `run_bo` loop. Part 1's notebook would have needed full copy-paste.
 - `pip install -e .` (editable install) is how you make a local package importable across the system without copying files. The `pyproject.toml` with `[tool.setuptools.packages.find] where = ["src"]` is the magic that makes the `src/` layout work.
 - BoTorch's `SingleTaskGP` defaults to RBF kernel with ARD (per-dimension lengthscales). Frazier recommends Matérn 5/2 — may explore as ablation in Phase 2.
 - A single seed is misleading for BO comparison. seed=42 alone said "UCB beats EI 20x"; 10 seeds said "UCB has best median but worst tail risk". Lesson learned for all future experiments.
@@ -68,10 +67,9 @@ A daily log of what I did, what I learned, and what's next.
 
 - Initial confusion with BoTorch kernel attribute path: tried `model.covar_module.base_kernel.lengthscale` (worked in older versions), failed because current BoTorch's default `SingleTaskGP` doesn't wrap RBF in ScaleKernel. Correct path is `model.covar_module.lengthscale`.
 - Tried to use `.item()` on per-dim ARD lengthscale tensor (2 elements) — got `RuntimeError: tensor with 2 elements cannot be converted to Scalar`. Fixed with `.squeeze().tolist()`.
-- Shell heredoc with EOF can break in zsh when the content includes EOF-like strings — switched to Python's `<< 'PYEOF'` for writing markdown files.
 - Reminder of `.gitignore` discipline: results/* and figures/* are gitignored (large outputs shouldn't bloat the repo), but the code that generates them must be committed (reproducibility).
 
-### Next session (Day 3)
+### Next session (Part 3)
 
 - Add Hartmann-6 and Ackley problems to the benchmark suite (extends `synthetic.py`)
 - Refactor the experiment script to take problem as a parameter (so we can run the same protocol on all problems)
@@ -80,11 +78,11 @@ A daily log of what I did, what I learned, and what's next.
 
 ### Git checkpoint
 
-End of Day 2: 6 commits on `main`, all pushed to `origin/main`.
+End of Part 2: 6 commits on `main`, all pushed to `origin/main`.
 
 ---
 
-## Day 3
+## Part 3
 
 ### Done
 
@@ -92,12 +90,12 @@ End of Day 2: 6 commits on `main`, all pushed to `origin/main`.
 - Added `Hartmann6` and `Ackley` classes to `src/al_benchmark/problems/synthetic.py`
 - Both inherit `BaseProblem`, wrap BoTorch's test functions, add 1-2 lines of code each
 - Ackley bounds narrowed from BoTorch default [-32.768, 32.768] to literature-standard [-5, 5]
-- Verified all three problems work end-to-end with `run_bo` (no code changes needed in the loop — this is the payoff for Day 2's abstraction work)
+- Verified all three problems work end-to-end with `run_bo` (no code changes needed in the loop — this is the payoff for Part 2's abstraction work)
 
 **Generalized experiment script**:
 - `experiments/exp_02_strategies_per_problem.py` takes `--problem` as a CLI argument
 - Registry pattern (PROBLEMS / STRATEGIES dicts) replaces hard-coded references
-- Regression-tested: re-running on Branin gives identical numbers to Day 2 (validates the refactor is bug-free)
+- Regression-tested: re-running on Branin gives identical numbers to Part 2 (validates the refactor is bug-free)
 
 **Full multi-problem benchmark**:
 - Ran 3 strategies × 3 problems × 10 seeds × 20 iterations = 90 BO runs total
@@ -123,7 +121,7 @@ End of Day 2: 6 commits on `main`, all pushed to `origin/main`.
 
 ### Learned
 
-- **Modular code pays off when you extend**: adding Hartmann6 + Ackley took ~30 minutes of actual coding. The 90 BO runs needed no changes to `run_bo`. This is the kind of leverage that justified Day 2's refactor cost.
+- **Modular code pays off when you extend**: adding Hartmann6 + Ackley took ~30 minutes of actual coding. The 90 BO runs needed no changes to `run_bo`. This is the kind of leverage that justified Part 2's refactor cost.
 - **Mean vs rank diverge on noisy benchmarks**: by mean final regret, EI wins (because UCB has a catastrophic Branin seed). By Friedman rank, UCB wins by 0.12 (because rank is robust to outliers). This is exactly why Demšar (2006) recommends rank-based stats for BO benchmarks — and exactly why "mean ± std" plots can mislead.
 - **p=0.89 doesn't mean "EI = UCB"**: it means we cannot reject H0 with current evidence. The correct paper language is "EI and UCB are statistically indistinguishable on this benchmark" — never "EI is equivalent to UCB".
 - **Curse of dimensionality is empirically visible**: EI's advantage over Random shrinks from 26× (Branin 2D) to 9% (Ackley 10D) under the same 20-iteration budget. De Ath et al. give a mechanistic explanation (GP uncertainty degrades in high D).
@@ -141,7 +139,7 @@ End of Day 2: 6 commits on `main`, all pushed to `origin/main`.
 - **Did not optimize the CD diagram aesthetics today** — saved that for a publication-quality pass later in the project (Week 4).
 - **Kept the analysis in a notebook, not a script**. Statistical analysis is iterative; once stable, can be re-exported to `experiments/exp_03_friedman_nemenyi.py` if needed for reproducibility.
 
-### Next session (Day 4)
+### Next session (Part 4)
 
 - Polish CD diagram (CD ruler, larger fonts, grid) for paper figure
 - Consider adding ε-greedy as a 4th acquisition strategy (De Ath et al. 2019 inspired)
@@ -150,11 +148,11 @@ End of Day 2: 6 commits on `main`, all pushed to `origin/main`.
 
 ### Git checkpoint
 
-End of Day 3: 12 commits on `main` (will be 12 after today's final commits), all pushed to `origin/main`.
+End of Part 3: 12 commits on `main` (will be 12 after today's final commits), all pushed to `origin/main`.
 
 ---
 
-## Day 4
+## Part 4
 
 ### Done
 
@@ -177,8 +175,8 @@ End of Day 3: 12 commits on `main` (will be 12 after today's final commits), all
 - Final mean regret — Branin: EI 0.034/UCB 0.036/Rand 1.58; Hartmann6: 0.222/0.415/1.81; Ackley: 4.05/4.36/8.13; SixHumpCamel: 0.147/0.314/0.92; Borehole: 8.63/0.60/113.9; Piston: 0.019/0.002/0.41. BO >> Random on all six.
 
 **Statistics re-run on 6-problem suite (N=60 blocks)**:
-- Extended `exp_03` PROBLEMS to all 6; Friedman input now (60, 3) vs Day 3's (30, 3).
-- **Friedman**: χ²(2)=83.71, p=6.66×10⁻¹⁹ → reject H0 (vs Day 3's χ²=28.53, p=6.4×10⁻⁷ — signal ~3× stronger).
+- Extended `exp_03` PROBLEMS to all 6; Friedman input now (60, 3) vs Part 3's (30, 3).
+- **Friedman**: χ²(2)=83.71, p=6.66×10⁻¹⁹ → reject H0 (vs Part 3's χ²=28.53, p=6.4×10⁻⁷ — signal ~3× stronger).
 - **Nemenyi**: EI vs UCB p=0.31 (NOT significant); both vs Random p<1×10⁻⁶.
 - **Avg ranks**: UCB 1.39 < EI 1.66 << Random 2.95 (Random near the 3.0 ceiling — it's bottom in almost every block).
 - CD diagram + stats summary regenerated.
@@ -198,8 +196,6 @@ End of Day 3: 12 commits on `main` (will be 12 after today's final commits), all
 
 ### Issues encountered
 
-- `python -c "..."` probe locked zsh into `dquote>` again (recurring) — used the single-line / heredoc-free form.
-- A stray `%` got pasted in front of a command → `zsh: fg: job not found: python`. Re-typed the command cleanly.
 - Temporary verification code accidentally left at the bottom of `engineering.py` caused a self-import and printed its output twice; deleted it (verification belongs in `tests/`, not the module body).
 - Ruff/import ordering: kept the `engineering` import before `synthetic` (alphabetical, isort convention) when extending exp_02's imports.
 
@@ -214,21 +210,21 @@ End of Day 3: 12 commits on `main` (will be 12 after today's final commits), all
 
 All Phase 1 hard-guarantee deliverables are now in place except the 8-page report: 6 problems ✅, 4 acquisitions (EI/UCB/Random built; Uncertainty still not built), GP surrogate ✅ (now normalized), Friedman+Nemenyi on full suite ✅, public repo ✅.
 
-### Next session (Day 5)
+### Next session (Part 5)
 
 - Begin drafting the technical report — Methods section first (BO loop, GP surrogate + normalization, acquisition functions, problem suite, statistical methodology).
-- Polish the CD diagram to publication quality (CD ruler, larger fonts) — deferred since Day 3.
+- Polish the CD diagram to publication quality (CD ruler, larger fonts) — deferred since Part 3.
 - Consider the still-unbuilt Uncertainty acquisition (Phase 1 listed 4 acquisitions) and ε-greedy (De Ath / Phase 2).
 - Clean up the remaining lint warnings flagged in `gp.py` / PROBLEMS panel.
 
 ### Git checkpoint
 
-End of Day 4: main has the Piston commit, the normalization-fix commit, the 6-problem-suite + Borehole-correction commit, the exp_03 N=60 commit, the Shahriari reading-log commit, and (after this entry) the Day 4 lab-notebook commit — all pushed to `origin/main`.
+End of Part 4: main has the Piston commit, the normalization-fix commit, the 6-problem-suite + Borehole-correction commit, the exp_03 N=60 commit, the Shahriari reading-log commit, and (after this entry) the Part 4 lab-notebook commit — all pushed to `origin/main`.
 
 
 ---
 
-## Day 5
+## Part 5
 
 ### Done
 
@@ -267,12 +263,11 @@ End of Day 4: main has the Piston commit, the normalization-fix commit, the 6-pr
 - **Pure exploration is no better than random search.** This is the headline finding of adding Uncertainty. It uses the *same* GP as EI/UCB, yet ranks statistically indistinguishable from Random (Nemenyi p=0.97). This isolates *why* BO works: the value is not in "using a GP" — it is in **balancing exploration with exploitation**. Uncertainty explores with the GP but never exploits, and that is enough to make it as bad as blind random search. Two independent literature anchors (De Ath 2019's Pareto-front view, Shahriari 2016's "surrogate matters more than acquisition, but balance matters most") predict exactly this.
 - **A four-way comparison tells a cleaner story than three.** With three strategies the result was "EI≈UCB >> Random". With four, the same data resolves into two clean equivalence classes — balanced vs pure-exploration — which is a more complete and more defensible scientific statement, and a much better figure.
 - **Don't trust a library's default plot for a paper.** scikit-posthocs draws a correct-but-ugly CD diagram with no CD ruler. Re-deriving the CD analytically and drawing the figure by hand gave full control and a publication-ready result. The studentized-range formula also documents the statistics explicitly in code.
-- **Probe an unfamiliar acquisition before wrapping it.** Confirming `PosteriorStandardDeviation`'s constructor signature and end-to-end behaviour in BoTorch 0.17.2 took two minutes and avoided guessing — same discipline that paid off for the Normalize/Standardize API on Day 4.
+- **Probe an unfamiliar acquisition before wrapping it.** Confirming `PosteriorStandardDeviation`'s constructor signature and end-to-end behaviour in BoTorch 0.17.2 took two minutes and avoided guessing — same discipline that paid off for the Normalize/Standardize API on Part 4.
 
 ### Issues encountered
 
 - `ruff` was not on PATH initially (only the VSCode extension was installed) — `command not found`. Fixed with `pip install ruff`.
-- A stray `%` pasted in front of a command gave `zsh: fg: job not found` (recurring paste artifact). Re-typed cleanly.
 - First CD-diagram rewrites had leader lines overlapping the strategy labels (strikethrough effect). Root cause was the text horizontal-alignment direction; fixed by writing labels *outward* from a fixed label column and widening the x-margins (no `bbox_inches="tight"`, which had been distorting the manual coordinates).
 
 ### Design decisions made
@@ -285,12 +280,67 @@ End of Day 4: main has the Piston commit, the normalization-fix commit, the 6-pr
 
 All Phase 1 hard-guarantee deliverables are now complete **except the 8-page report**: 6 problems ✅, 4 acquisitions ✅ (EI/UCB/Uncertainty/Random — Uncertainty added today), normalized GP surrogate ✅, Friedman+Nemenyi on the full 4×6 suite ✅, public repo ✅.
 
-### Next session (Day 6)
+### Next session (Part 6)
 
 - Begin drafting the technical report — Methods section first (BO loop, GP surrogate + normalization, the four acquisition functions, the 6-problem suite, statistical methodology).
-- Update the (now outdated, Day-3-era) README to reflect 6 problems, 4 strategies, normalization, and the N=60 results; embed the three display figures.
+- Update the (now outdated, Part-3-era) README to reflect 6 problems, 4 strategies, normalization, and the N=60 results; embed the three display figures.
 - Reuse figure captions between README and report.
 
 ### Git checkpoint
 
-End of Day 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertainty strategy + exp_02 registration, the 4-strategy Friedman extension, the selected-figures tracking commit, and (after this entry) the Day 5 lab-notebook commit — all pushed to `origin/main`.
+End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertainty strategy + exp_02 registration, the 4-strategy Friedman extension, the selected-figures tracking commit, and (after this entry) the Part 5 lab-notebook commit — all pushed to `origin/main`.
+
+---
+
+## Part 6
+
+### Done
+
+**Drafted the full 8-page technical report (LaTeX)**:
+- Wrote an 8-page report, "The Necessity of Exploitation in Bayesian Optimization: A Systematic Benchmark of Four Acquisition Strategies on Six Problems," targeting PhD applications.
+- Used Claude Code with the third-party PaperSpine skill suite to draft section-by-section, then fact-checked every section against the project's single source of truth (lab_notebook.md, reading_log.md, results/exp_03_stats_summary.json, and the code) before accepting it.
+- Section order written: §3 Methods first (most grounded), then §4 Results, §5 Discussion + §6 Conclusion, §1 Introduction + §2 Background, and finally the Abstract once the body was locked.
+
+**Fact-checking caught and fixed several issues** (the important part):
+- **Deleted a fabricated table column.** The draft's normalization table (Table 1) included "before normalization" numbers for Borehole (~300). I never ran un-normalized Borehole — normalization was already in gp.py before Borehole's first run (the negative-regret incident on Part 4 proves it). Cut the Borehole column entirely; Table 1 now reports only Piston, which is the one genuine before/after comparison (EI 0.41→0.019 ~20x, UCB 0.39→0.0019 ~200x, Random 0.40→0.41 unchanged).
+- **Corrected an order-of-magnitude claim.** Re-derived Piston's input span from the actual bounds in engineering.py: V0 mid ≈ 10^-2.2, P0 mid ≈ 10^5.0 → ~7 decades. The draft had said "five to six" in §3 and "three" in §5, with an example (k vs P0) that only spanned ~2 decades. Unified both sections to "approximately seven orders of magnitude" with the V0-vs-P0 example.
+- **Removed an unverified mechanistic claim.** A figure caption asserted two outlier Borehole seeds "failed to locate the high-flow-rate corner" — I never diagnosed that. Changed to the descriptive "two outlier seeds with elevated final regret" and added the mean-vs-median contrast (8.63 vs 2.41) to explain the std band.
+- **Fixed a dimensionality multiplier.** The outline placeholder said the EI-over-Random gap fell "40x to 1.5x"; the real numbers are ~47x (Branin) to ~2x (Ackley). Used the real values.
+- Verified all 24 per-problem median values against per-seed data (re-ran the computation); confirmed even the counter-intuitive Branin Uncertainty median > mean (2.676 > 2.667), which is real left-skew at n=10, not an error.
+
+**Polished and assembled**:
+- Added \citep for BoTorch, Surjanovic & Bingham (VLSE), and scikit-posthocs so all seven references actually appear in the bibliography.
+- Converted first-person plural to singular (we → I) throughout, since this is a single-author report, while leaving "they/their" intact in citations of other authors' work.
+- Assembled main.tex (10pt two-column article, natbib author-year) and compiled cleanly to 8 pages via Overleaf; three display figures (CD diagram, Borehole and Ackley trajectories) render in §4.
+
+**Repository housekeeping**:
+- Organized the report into a self-contained report/ directory (7 .tex/.bib sources + report/figures/ with the three display figures); deleted the messy paper_rewriting_output/ scratch directory.
+- Extended .gitignore with LaTeX build-artifact rules (*.aux, *.bbl, *.blg, *.log, *.out, *.pdf) so compilation products never get committed.
+- Added the Demšar (2006) reading-log entry, so the reading log now covers all seven cited references.
+
+### Learned
+
+- **An AI writing tool is an accelerator, not an author.** PaperSpine produced fluent, well-structured LaTeX fast, but it fabricated data (the Borehole "before" column), invented a mechanistic explanation, and carried placeholder numbers from the outline into the body. Every quantitative claim had to be checked against the real results. The tool was genuinely useful for structure and prose; it was not trustworthy on facts. The fact-checking discipline — every number traceable to results/ or the lab notebook — is what made the output safe to put my name on.
+- **The single-source-of-truth discipline paid off.** Because every figure and statistic already had a standalone script and a logged number, fact-checking was fast: I could point to exp_03_stats_summary.json or re-run a one-off per-seed computation to confirm or refute any claim in seconds. The earlier "notebook → script" rule made the report defensible.
+- **Data integrity is a line you hold even when it costs you.** The cleanest moment of the whole report was cutting a table column rather than keeping a fabricated number. A report with one honest comparison beats a report with two comparisons where one is invented.
+
+### Issues encountered
+
+- PaperSpine is a Claude Code / Codex skill suite, not usable from the web chat interface; it had to be installed (~/.claude/skills/) and driven separately. Drafting happened in Claude Code, fact-checking in parallel.
+- Figures initially failed to render on the first Overleaf compile (paths showed as text) because the local main.tex used \graphicspath{{../}} for the subdirectory layout, which doesn't match Overleaf's flat structure. Fixed with \graphicspath{{./}{figures/}}.
+
+### Design decisions made
+
+- **Report carrier = LaTeX**, drafted via Claude Code + PaperSpine but fact-checked independently against project artifacts. Web-Claude acted as reviewer/fact-checker of each section.
+- **Single-author voice = "I"**, not editorial "we" — appropriate for a PhD-application artifact that documents independent work.
+- **report/ is self-contained** (its own figures/ copy) so it compiles standalone; the canonical figures still live in the top-level figures/.
+- **Report PDF is gitignored**, not committed — sources are in the repo; the compiled PDF is sent directly to Dr. Liu.
+
+### Next session (Part 7)
+
+- Update the (still Part-3-era) README to reflect 6 problems, 4 strategies, normalization, and the N=60 results; link to the report and the headline two-clique finding.
+- Send Dr. Liu a plain-language summary + GitHub link + the compiled PDF.
+
+### Git checkpoint
+
+End of Part 6: main has the report-sources commit (b3eb63b), the Demšar reading-log commit (3268c44), and (after this entry) the Part 6 lab-notebook commit — all pushed to origin/main.
