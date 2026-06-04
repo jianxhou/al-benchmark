@@ -1,0 +1,81 @@
+%% ============================================================
+%% main.tex  — "The Necessity of Exploitation in Bayesian Optimization"
+%% Compile:  pdflatex main → bibtex main → pdflatex main → pdflatex main
+%% Overleaf: upload main.tex, all sec*.tex, references.bib, and the
+%%           figures/ folder (exp_03_cd_diagram.png,
+%%           exp_02_borehole_strategies.png, exp_02_ackley_strategies.png).
+%% ============================================================
+\documentclass[10pt, twocolumn]{article}
+
+%% ------ Layout -----------------------------------------------
+\usepackage[top=0.75in, bottom=0.85in, left=0.65in, right=0.65in,
+            columnsep=0.2in]{geometry}
+\usepackage{microtype}          % better line-breaking / spacing
+
+%% ------ Math -------------------------------------------------
+\usepackage{amsmath, amssymb}
+\DeclareMathOperator*{\argmax}{arg\,max}  % used in §2
+
+%% ------ Tables -----------------------------------------------
+\usepackage{booktabs}           % \toprule / \midrule / \bottomrule
+\usepackage{multirow}
+
+%% ------ Graphics ---------------------------------------------
+\usepackage{graphicx}
+% Works for both local compilation (report/) and Overleaf upload.
+\graphicspath{{./}{figures/}}
+
+%% ------ Lists ------------------------------------------------
+\usepackage{enumitem}           % [nosep] used in §1 and §4
+
+%% ------ Bibliography (author–year, natbib) -------------------
+\usepackage[round, authoryear]{natbib}
+%% \citep{} → (Author, year)
+%% \citet{} → Author (year)
+%% \citeyear{} → year            [used in §5]
+
+%% ------ Hyperlinks -------------------------------------------
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
+%% ------ Encoding (handles Unicode em-dash, ě, etc.) ----------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+%% ============================================================
+%% Title block
+%% ============================================================
+\title{\textbf{The Necessity of Exploitation in Bayesian Optimization:\\
+A Systematic Benchmark of Four Acquisition Strategies\\
+on Six Problems}}
+
+\author{Jianxiu Hou\\
+  \texttt{jianxiuhou9@gmail.com}}
+
+\date{June 2026}
+
+%% ============================================================
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+%% Abstract
+\input{abstract}
+
+%% §1 Introduction + §2 Background
+\input{sec1_intro_sec2_background}
+
+%% §3 Methods
+\input{sec3_methods}
+
+%% §4 Results
+\input{sec4_results}
+
+%% §5 Discussion + §6 Conclusion
+\input{sec5_discussion_sec6_conclusion}
+
+%% References
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,206 @@
+% ============================================================
+% §1  Introduction
+% ============================================================
+\section{Introduction}
+\label{sec:introduction}
+
+Bayesian optimization (BO) is the standard approach to optimizing
+expensive black-box functions: objectives that are costly to evaluate,
+return no gradients, and may be non-convex or multimodal
+\citep{frazier2018tutorial,shahriari2016taking}.
+Applications range from hyperparameter tuning in machine learning to
+aerodynamic shape optimization, where each function evaluation can take
+minutes to hours of computation or physical experiment.
+BO sequentially builds a probabilistic surrogate model—typically a
+Gaussian process (GP)—and uses an \emph{acquisition function} to decide
+where to evaluate next.
+The acquisition function must balance \emph{exploitation} (querying
+where the surrogate predicts high values) against \emph{exploration}
+(querying where the surrogate is uncertain, to reduce the risk of
+missing a better region).
+
+A natural question is whether the GP's uncertainty estimate alone is
+sufficient to drive sample efficiency.
+Purely uncertainty-driven sampling—selecting the point of maximum
+posterior standard deviation—uses the GP's calibration to target
+information gain, without any regard for whether the point is predicted
+to have a high objective value.
+If uncertainty-driven sampling outperforms blind random search, it would
+suggest that the GP's uncertainty model, rather than the exploitation
+signal, is the primary engine of BO's advantage.
+If, on the other hand, it performs no better than random, it would
+implicate exploitation as the necessary component.
+Classical acquisition functions such as Expected Improvement (EI) and
+Upper Confidence Bound (UCB) combine both signals; understanding which
+component matters more is fundamental to designing and interpreting BO
+algorithms.
+
+I address this question through a systematic benchmark.
+I evaluate four strategies—EI, UCB, Uncertainty (maximum posterior
+standard deviation), and Random—on six benchmark problems spanning
+dimensions 2 to 10 and two problem families: classical synthetic
+functions and physics-based engineering test functions.
+All strategies share the same GP surrogate and BO loop, so any
+performance difference is attributable solely to the acquisition
+function.
+I use a Friedman–Nemenyi non-parametric statistical framework
+\citep{demsar2006statistical} to draw conclusions robust to
+non-Gaussian regret distributions.
+
+\paragraph{Contributions.}
+\begin{enumerate}[nosep]
+  \item \textbf{Systematic 4-strategy benchmark.}
+    I run 4 strategies $\times$ 6 problems $\times$ 10 seeds $= 240$
+    BO runs under identical conditions and analyze results with a
+    non-parametric test (Friedman + Nemenyi) rather than mean-only
+    comparisons.
+    The analysis reveals two statistically separated equivalence classes:
+    balanced strategies \{EI, UCB\} and pure-exploration strategies
+    \{Uncertainty, Random\}.
+
+  \item \textbf{GP normalization is necessary on multi-scale engineering
+    problems.}
+    An experimental comparison on Piston (7D, inputs spanning
+    approximately seven orders of magnitude) shows that omitting GP input
+    normalization degrades BO to random-search performance, while the
+    Random baseline is unaffected.
+    This isolates the fault to the surrogate and validates the choice
+    of explicit, bounds-based normalization.
+
+  \item \textbf{Exploitation, not uncertainty, is the critical ingredient.}
+    The statistical equivalence of Uncertainty and Random (Nemenyi
+    $p = 0.974$) provides a controlled decomposition: the GP's
+    posterior variance, used without the posterior mean, provides no
+    measurable advantage over blind Sobol sampling.
+    Exploitation of the GP mean is the necessary condition for
+    sample-efficient BO.
+\end{enumerate}
+
+The remainder of the paper is organized as follows.
+Section~\ref{sec:background} reviews the BO framework, the GP surrogate,
+and related acquisition function families.
+Section~\ref{sec:methods} details the experimental design, surrogate
+implementation, and statistical methodology.
+Section~\ref{sec:results} presents all benchmark results.
+Section~\ref{sec:discussion} interprets the findings and discusses
+limitations.
+Section~\ref{sec:conclusion} concludes.
+
+% ============================================================
+% §2  Background
+% ============================================================
+\section{Background}
+\label{sec:background}
+
+\subsection{The Bayesian Optimization Loop}
+\label{sec:bo-background}
+
+Bayesian optimization solves $\max_{x \in \mathcal{X}} f(x)$ when $f$
+is a black-box function that is expensive to evaluate, returns no
+gradients, and may be multimodal \citep{frazier2018tutorial}.
+The algorithm proceeds in two alternating steps.
+First, a \emph{surrogate model} is fitted to all observations
+$\{(x_i, y_i)\}_{i=1}^n$; it provides a posterior distribution over
+$f$ with a calibrated mean $\mu(x)$ and variance $\sigma^2(x)$.
+Second, an \emph{acquisition function} $\alpha(x)$ converts the
+posterior into a scalar score at each candidate point; the next
+evaluation location is $x_{n+1} = \argmax_{x \in \mathcal{X}} \alpha(x)$.
+Solving the inner maximization is cheap because $\alpha$ is an
+analytical function of the posterior.
+
+BO is best suited to problems where: (i) each evaluation of $f$ is
+expensive (minutes to hours), (ii) the dimensionality is low-to-moderate,
+and (iii) gradients of $f$ are unavailable
+\citep{frazier2018tutorial,shahriari2016taking}.
+
+\subsection{Gaussian Process Surrogate}
+\label{sec:gp-background}
+
+A Gaussian process (GP) is a distribution over functions fully specified
+by a mean function $m(x)$ and a positive-definite kernel
+$k(x, x')$ \citep{frazier2018tutorial}.
+After observing $n$ points, the GP posterior at a new location $x_*$
+is Gaussian with
+\[
+  \mu(x_*) = k_*^\top (K + \sigma_n^2 I)^{-1} \mathbf{y},
+  \qquad
+  \sigma^2(x_*) = k(x_*, x_*) - k_*^\top (K + \sigma_n^2 I)^{-1} k_*,
+\]
+where $K_{ij} = k(x_i, x_j)$, $k_* = [k(x_i, x_*)]_i$, and
+$\sigma_n^2$ is the noise variance.
+The key computational cost is the $n\times n$ matrix inversion (or
+Cholesky decomposition), which is $\mathcal{O}(n^3)$ and limits exact
+GP inference to $n \lesssim 10^3$ observations \citep{shahriari2016taking}.
+
+The kernel encodes smoothness assumptions about $f$.
+I use the radial basis function (RBF) kernel with
+\emph{automatic relevance determination} (ARD): one independent
+lengthscale $\ell_j$ per input dimension $j$.
+ARD allows the GP to learn which dimensions carry most of the variation
+in $f$, effectively performing soft variable selection.
+Kernel hyperparameters are fitted by maximizing the exact marginal
+log-likelihood at each BO iteration.
+
+\subsection{Acquisition Functions}
+\label{sec:acq-background}
+
+Acquisition functions trade off exploitation of high-mean regions
+against exploration of high-variance regions.
+All classical acquisition functions use both $\mu(x)$ and $\sigma(x)$;
+the key difference is how they weight the two signals.
+
+\paragraph{Expected Improvement (EI).}
+$\alpha_{\mathrm{EI}}(x) = \mathbb{E}[\max(f(x) - f^+, 0)]$ where
+$f^+ = \max_i y_i$ is the current best observation.
+Under a GP this has the closed form
+$\alpha_{\mathrm{EI}}(x) = \sigma(x)[\gamma\Phi(\gamma) + \phi(\gamma)]$
+with $\gamma = (\mu(x) - f^+)/\sigma(x)$ \citep{frazier2018tutorial}.
+EI is positive even when $\mu(x) < f^+$, provided $\sigma(x)$ is
+large—this is why EI naturally explores uncertain regions.
+EI has no finite-time regret guarantee.
+
+\paragraph{Upper Confidence Bound (UCB).}
+$\alpha_{\mathrm{UCB}}(x) = \mu(x) + \sqrt{\beta}\,\sigma(x)$.
+The parameter $\beta$ directly controls the exploration–exploitation
+trade-off.
+Under a theory-motivated schedule $\beta_t \propto \log t$, GP-UCB
+achieves sub-linear cumulative regret \citep{frazier2018tutorial}.
+In practice a fixed $\beta$ is common; I use $\beta = 2$.
+
+\paragraph{Pure-exploration strategies.}
+Maximizing $\sigma(x)$ alone—without any $\mu(x)$ term—corresponds to
+selecting the point about which the GP is most uncertain.
+This pure-exploration strategy is useful as a controlled ablation: it
+uses the GP's calibration machinery but discards all exploitation signal.
+Blind random search serves as the weakest baseline.
+De~Ath et al.~\citeyear{deAth2019greed} give a theoretical framing:
+they show EI and UCB both lie on the exploration–exploitation Pareto
+front in the ($\mu$, $\sigma$) plane, whereas maximum-$\sigma$ sampling
+is off this front—it is Pareto-dominated in the exploitation dimension.
+Their empirical results suggest this off-front position is
+consequential in higher dimensions.
+
+\subsection{Related Work}
+\label{sec:related}
+
+\paragraph{Comparative benchmarks.}
+Several large-scale BO benchmarks have compared acquisition strategies.
+Shahriari et al.~\citeyear{shahriari2016taking} review EI, UCB,
+Thompson Sampling, and Entropy Search across diverse tasks, and conclude
+that the choice of surrogate model typically matters more than the
+fine-grained choice of acquisition function—a claim my normalization
+experiment instantiates concretely.
+De~Ath et al.~\citeyear{deAth2019greed} compare standard acquisition
+functions against $\varepsilon$-greedy methods on ten synthetic benchmarks plus
+real-world tasks, finding that simple greedy strategies are competitive
+with EI and UCB in high dimensions.
+
+\paragraph{Statistical methodology.}
+\Citet{demsar2006statistical} argues that comparing classifiers—or, by
+extension, optimization algorithms—over multiple datasets requires
+non-parametric rank-based tests rather than mean-performance
+comparisons, because regret distributions are typically non-Gaussian and
+the null hypothesis of equal distributions is not testable with a single
+paired $t$-test across datasets.
+I adopt the Friedman–Nemenyi framework he recommends for exactly this
+reason.

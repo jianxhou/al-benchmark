@@ -1,0 +1,40 @@
+% ============================================================
+% Abstract
+% ============================================================
+\begin{abstract}
+Bayesian optimization (BO) is widely used for expensive black-box
+functions, where a Gaussian process (GP) surrogate drives an acquisition
+function that balances exploration of uncertain regions against
+exploitation of promising ones.
+A fundamental open question is whether the GP's uncertainty estimate
+alone—without any exploitation signal—is sufficient to outperform blind
+random search.
+
+I address this question with a systematic benchmark of four acquisition
+strategies: Expected Improvement (EI), Upper Confidence Bound (UCB),
+Uncertainty (maximum posterior standard deviation), and Random.
+All four strategies share the same normalized GP surrogate and are
+evaluated on six problems spanning dimensions 2 to 10, mixing classical
+synthetic functions with physics-based engineering test functions.
+Each strategy–problem pair is repeated over 10 independent seeds,
+yielding 240 BO runs total.
+A Friedman–Nemenyi non-parametric test ($N = 60$ blocks, $k = 4$)
+provides statistically robust comparisons.
+
+The Friedman test strongly rejects equal performance
+($\chi^2(3) = 128.82$, $p = 9.73 \times 10^{-28}$).
+Nemenyi post-hoc comparisons reveal two statistically separated
+equivalence classes: balanced strategies $\{\text{EI, UCB}\}$
+significantly outperform pure-exploration strategies
+$\{\text{Uncertainty, Random}\}$ (all cross-class $p < 10^{-6}$),
+while Uncertainty and Random are indistinguishable from each other
+($p = 0.974$).
+This Uncertainty–Random tie demonstrates that exploitation of the GP's
+posterior mean—not the uncertainty estimate alone—is the necessary
+condition for sample-efficient BO.
+A secondary finding is that GP input normalization to known problem
+bounds is a first-class engineering requirement on multi-scale problems:
+omitting it degrades BO to random-search performance on Piston (7D),
+while leaving the Random baseline unaffected, isolating the fault to
+the surrogate.
+\end{abstract}

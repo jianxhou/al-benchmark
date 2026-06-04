@@ -44,3 +44,15 @@ literature/*.pdf
 
 # ruff
 .ruff_cache/
+
+# LaTeX build artifacts (report/)
+report/*.aux
+report/*.bbl
+report/*.blg
+report/*.log
+report/*.out
+report/*.pdf
+report/*.synctex.gz
+report/*.fls
+report/*.fdb_latexmk
+report/*.toc

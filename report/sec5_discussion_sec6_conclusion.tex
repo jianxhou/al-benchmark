@@ -1,0 +1,151 @@
+% ============================================================
+% §5  Discussion
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Exploitation Is the Critical Ingredient}
+\label{sec:exploitation}
+
+The most consequential result is not that EI and UCB outperform Random—
+that is expected—but that Uncertainty is statistically indistinguishable
+from Random ($p = 0.974$, average ranks $3.38$ vs.\ $3.48$).
+Uncertainty is not a blind strategy: it fits the same GP as EI and UCB
+at every iteration and selects the point of maximum posterior standard
+deviation.
+Yet its rank matches that of blind Sobol sampling across 60
+(problem, seed) blocks.
+
+This isolates where the value of BO lies.
+Uncertainty and Random share one characteristic: neither uses the GP's
+posterior mean.
+EI and UCB share the complementary characteristic: both combine the
+posterior mean with the posterior variance.
+The equivalence classes therefore provide a clean experimental
+decomposition—the GP's uncertainty estimate alone is insufficient;
+exploitation of the mean is the necessary component.
+
+Two independent lines of theory predict this outcome.
+De~Ath et al.~\citeyear{deAth2019greed} recast acquisition function
+selection as a bi-objective problem: they show that EI and UCB both
+select points on the exploration–exploitation Pareto front, whereas a
+strategy that uses only $\sigma(x)$ (the pure-exploration extreme) sits
+off this front in the exploitation dimension.
+Shahriari et al.~\citeyear{shahriari2016taking} observe that acquisition
+functions matter, but caution against over-indexing on any single one;
+their framing implies that the \emph{balance} between the two GP signals
+is what separates effective from ineffective acquisition strategies.
+Both predictions are borne out by the Uncertainty–Random equivalence.
+
+\subsection{EI and UCB Are Interchangeable at This Budget}
+\label{sec:ei-ucb}
+
+Within the balanced-strategy class, EI and UCB are statistically
+indistinguishable (Nemenyi $p = 0.404$), despite different theoretical
+properties: UCB has finite-time regret guarantees under appropriate
+$\beta$ schedules, whereas EI has no such guarantee.
+The per-problem medians echo this: UCB leads on four of six problems, EI
+on two, with no consistent pattern by problem type or dimension.
+
+De~Ath et al.~\citeyear{deAth2019greed} provide a mechanistic
+explanation: both EI and UCB lie on the exploration–exploitation Pareto
+front, so they explore at similar rates; any residual difference is
+smaller than the problem-to-problem and seed-to-seed variance at a
+20-iteration budget.
+Shahriari et al.~\citeyear{shahriari2016taking} reinforce this with a
+broader observation: the surrogate model's adequacy typically dominates
+the fine-grained acquisition choice.
+The EI–UCB equivalence is therefore not a sample-size failure but the
+expected outcome of using two well-designed balanced strategies on the
+same adequate surrogate.
+
+\subsection{GP Normalization as a First-Class Methodological Result}
+\label{sec:normalization}
+
+The GP normalization result warrants discussion beyond a footnote in the
+Methods section.
+The initial experiment on Piston (7D) showed EI and UCB performing at
+random-search level—plausible only if the surrogate were failing.
+Piston's inputs span approximately seven orders of magnitude—initial gas
+volume $V_0 \in [0.002,\,0.010]\,\mathrm{m}^3$ alongside ambient
+pressure $P_0 \in [90\,000,\,110\,000]\,\mathrm{Pa}$—so an
+un-normalized GP cannot learn meaningful per-dimension lengthscales.
+Adding \texttt{Normalize} and \texttt{Standardize} recovered ${\approx}20\times$
+improvement for EI and ${\approx}200\times$ for UCB, while Random—
+which bypasses the GP—remained unchanged, isolating the fault to the
+surrogate.
+
+This finding directly instantiates Shahriari et al.'s
+\citeyear{shahriari2016taking} claim that surrogate adequacy dominates
+acquisition choice: the problem was not that EI or UCB was the wrong
+acquisition function, but that the surrogate itself was miscalibrated.
+It also underscores a practical lesson for engineers deploying BO on
+real systems: physical inputs with heterogeneous scales require explicit
+normalization to the known search bounds, not data-adaptive bounds that
+drift as observations accumulate.
+
+\subsection{Limitations}
+\label{sec:limitations}
+
+\paragraph{Budget.}
+The 20-iteration budget is appropriate for expensive black-box
+functions~\citep{frazier2018tutorial}, but it is tight relative to the
+10D Ackley search space.
+At this budget, no strategy explores more than a small fraction of
+$[-5, 5]^{10}$, which suppresses the EI–Random advantage from $47\times$
+on 2D Branin to $2\times$ on 10D Ackley and limits conclusions about
+asymptotic performance.
+Longer-horizon experiments would be needed to determine whether
+balanced strategies accumulate a growing advantage in high dimensions
+or plateau.
+
+\paragraph{Fixed $\beta$ for UCB.}
+I use a fixed $\beta = 2$ throughout, which does not follow the
+theory-motivated schedule $\beta_t \propto \log t$ under which GP-UCB's
+regret guarantees hold~\citep{frazier2018tutorial}.
+A theory-consistent $\beta$ schedule may widen or narrow the EI–UCB gap;
+I cannot rule out this effect from the current experiment.
+
+\paragraph{Sequential-only evaluation.}
+All results use sequential ($q = 1$) BO.
+Batch acquisition ($q > 1$, e.g.\ qEI) is important in practice when
+multiple evaluations can run in parallel, and the relative performance of
+strategies may differ in the batch setting.
+
+\paragraph{Synthetic and physics-emulator problems only.}
+The benchmark includes six analytic or closed-form problems.
+Real engineering simulations—such as CFD or aerodynamic design codes—may
+exhibit noise, discontinuities, or constraint violations not present
+here.
+Whether the two-clique finding persists on black-box simulation outputs
+remains an open question.
+
+% ============================================================
+% §6  Conclusion
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+I benchmarked four acquisition strategies—EI, UCB, Uncertainty, and
+Random—on six problems spanning dimensions 2 to 10 and two problem
+families (synthetic and engineering), using a Friedman–Nemenyi
+non-parametric framework with $N = 60$ blocks.
+The results converge on two findings.
+
+First, the 240 BO runs partition cleanly into two equivalence classes:
+balanced strategies \{EI, UCB\} are statistically superior to
+pure-exploration strategies \{Uncertainty, Random\}, with all
+cross-class Nemenyi $p$-values below $10^{-6}$ and an inter-class rank
+gap of $1.62 \gg \mathrm{CD} = 0.61$.
+The Uncertainty–Random tie ($p = 0.974$) is the sharpest statement of
+this result: using a GP for exploration only, without any exploitation
+of the posterior mean, provides no measurable advantage over blind
+random search.
+
+Second, GP normalization to the known problem bounds is a
+first-class engineering requirement on multi-scale problems.
+Without it, BO on Piston degraded to random-search performance;
+restoring it recovered one to two orders of magnitude in final regret.
+This confirms the theoretical expectation that surrogate adequacy
+dominates the acquisition-function choice and highlights a pitfall
+specific to physical systems with heterogeneous input scales.

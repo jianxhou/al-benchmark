@@ -1,0 +1,262 @@
+% ============================================================
+% §3  Methods
+% ============================================================
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Bayesian Optimization Protocol}
+\label{sec:protocol}
+
+I follow the standard sequential BO protocol.
+An initial design of $n_{\mathrm{init}} = 2d$ points is drawn via Sobol
+quasi-random sampling, where $d$ is the problem dimensionality; Sobol
+provides more uniform space-filling coverage than independent uniform
+random draws.
+After the initial design I run $T = 20$ sequential optimization
+iterations.
+At each step the GP surrogate is refitted to all accumulated observations,
+the acquisition function is maximized to select one candidate point, and
+the true objective is evaluated at that point.
+All tensor computations use \texttt{torch.float64} to preserve GP
+numerical stability.
+
+\paragraph{Performance metric.}
+Performance is measured by \emph{simple regret}
+\[
+  r_t = f^* - \max_{i \le t}\, y_i,
+\]
+where $f^*$ is the known optimal value and $y_i$ are observed function
+values.
+Because all six problems are framed as \emph{maximization},
+$r_t \ge 0$ throughout every run and decreases toward zero as
+the optimizer improves.
+
+\paragraph{Experimental protocol.}
+Each strategy–problem pair is evaluated across 10 independent random
+seeds.
+Acquisition functions are maximized using BoTorch's
+\texttt{optimize\_acqf} with multi-start optimization
+(\texttt{num\_restarts}\,$= 10$, \texttt{raw\_samples}\,$= 64$).
+
+% ----------------------------------------------------------
+\subsection{Gaussian Process Surrogate}
+\label{sec:gp}
+
+I use BoTorch's \texttt{SingleTaskGP}~\citep{balandat2020botorch} as
+the surrogate: a Gaussian process with a radial basis function (RBF)
+kernel equipped with automatic relevance determination (ARD), one
+independent lengthscale per input dimension.
+Kernel hyperparameters—lengthscales, output scale, and noise
+variance—are fitted by maximizing the exact marginal log-likelihood
+(MLL) at every iteration.
+
+\paragraph{Input normalization.}
+A critical design choice is to normalize GP inputs to the unit
+hypercube $[0,1]^d$ and standardize outputs to zero mean and unit
+variance before fitting.
+I apply BoTorch's \texttt{Normalize(d,\,bounds=problem.bounds)} and
+\texttt{Standardize(m=1)} transforms, using the \emph{known, fixed}
+problem bounds rather than data-adaptive bounds.
+Fixing the normalization range to the full search space prevents it
+from drifting as observations accumulate, giving the GP a stable
+length-scale calibration throughout the run.
+
+The necessity of this choice was revealed empirically by the two
+engineering problems.
+Borehole and Piston have inputs spanning approximately seven orders of
+magnitude (e.g.\ Piston's initial gas volume
+$V_0 \in [0.002,\,0.010]\,\mathrm{m}^3$ alongside ambient pressure
+$P_0 \in [90\,000,\,110\,000]\,\mathrm{Pa}$, a factor of roughly
+$10^7$).
+Without normalization, the GP cannot learn sensible per-dimension
+lengthscales across these scales, causing EI and UCB to degrade to
+random-search performance.
+Table~\ref{tab:normalization} shows the effect on Piston, where the
+controlled comparison is cleanest: adding normalization reduces EI's
+mean final regret from $0.41$ to $0.019$ (${\approx}20{\times}$) and
+UCB's from $0.39$ to $0.0019$ (${\approx}200{\times}$), while the
+Random baseline—which makes no GP calls—remains unchanged at
+${\approx}0.40$.
+The unchanged Random performance isolates the fault squarely to the
+surrogate, not the problem formulation.
+
+\begin{table}[h]
+\centering
+\caption{Effect of GP input normalization on mean final regret on
+  Piston (7D), 10 seeds.  Random is unchanged because it does not use
+  the GP, confirming the fault is in the surrogate.}
+\label{tab:normalization}
+\begin{tabular}{lccc}
+\toprule
+Strategy & Before norm. & After norm. & Improvement \\
+\midrule
+EI       & 0.41  & \textbf{0.019}  & ${\approx}20{\times}$  \\
+UCB      & 0.39  & \textbf{0.0019} & ${\approx}200{\times}$ \\
+Random   & 0.40  & 0.41            & —                      \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ----------------------------------------------------------
+\subsection{Acquisition Strategies}
+\label{sec:strategies}
+
+I benchmark four strategies that together span the full
+exploration–exploitation spectrum (Table~\ref{tab:strategies}).
+
+\paragraph{Expected Improvement (EI).}
+\[
+  \alpha_{\mathrm{EI}}(x)
+    = \mathbb{E}\!\left[\max\!\bigl(f(x) - f^+,\, 0\bigr)\right],
+\]
+where $f^+ = \max_i y_i$ is the current best observed value.
+Under a GP surrogate this has the closed form
+$\alpha_{\mathrm{EI}}(x) =
+  \sigma(x)\!\left[\gamma(x)\Phi(\gamma(x)) + \phi(\gamma(x))\right]$,
+with $\gamma(x) = (\mu(x) - f^+)/\sigma(x)$, where $\Phi$ and $\phi$
+are the standard Gaussian CDF and PDF.
+EI rewards both a high posterior mean (exploitation) and a high
+posterior variance (exploration); neither component alone is
+sufficient to generate positive EI.
+Implemented via \texttt{botorch.acquisition.ExpectedImprovement} with
+\texttt{best\_f = train\_y.max()}.
+
+\paragraph{Upper Confidence Bound (UCB).}
+\[
+  \alpha_{\mathrm{UCB}}(x) = \mu(x) + \sqrt{\beta}\,\sigma(x),
+  \quad \beta = 2.
+\]
+The $\beta$ parameter controls the exploration–exploitation
+trade-off.
+Unlike EI, GP-UCB has finite-time regret guarantees under appropriate
+$\beta$ schedules~\citep{frazier2018tutorial}.
+Implemented via \texttt{botorch.acquisition.UpperConfidenceBound}.
+
+\paragraph{Uncertainty (pure exploration).}
+\[
+  \alpha_{\mathrm{Unc}}(x) = \sigma(x).
+\]
+This strategy selects the point of maximum posterior standard
+deviation, entirely ignoring the posterior mean.
+It is the pure-exploration extreme of the spectrum: it uses the same
+GP as EI and UCB but discards all exploitation signal.
+Its inclusion allows me to isolate whether the GP's uncertainty
+estimate \emph{alone}—without any mean information—is sufficient to
+outperform blind search.
+Implemented via \texttt{botorch.acquisition.PosteriorStandardDeviation}.
+
+\paragraph{Random (baseline).}
+Points are drawn from a Sobol sequence within the search bounds at
+every iteration; the GP is never called.
+This is the weakest baseline that any data-efficient strategy must
+surpass.
+
+\begin{table}[h]
+\centering
+\caption{The four acquisition strategies and their position on the
+  exploration–exploitation spectrum.}
+\label{tab:strategies}
+\begin{tabular}{llcc}
+\toprule
+Strategy & Acquisition & Uses $\mu$? & Uses $\sigma$? \\
+\midrule
+EI          & ExpectedImprovement  & \checkmark             & \checkmark \\
+UCB         & UpperConfidenceBound & \checkmark             & \checkmark \\
+Uncertainty & PosteriorStdDev      & \phantom{\checkmark}   & \checkmark \\
+Random      & Sobol sampling       & \phantom{\checkmark}   & \phantom{\checkmark} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ----------------------------------------------------------
+\subsection{Problem Suite}
+\label{sec:problems}
+
+I benchmark on six functions spanning dimensions $d \in \{2,6,7,8,10\}$
+across two categories (Table~\ref{tab:problems}).
+
+\begin{table*}[t]
+\centering
+\caption{Benchmark problem suite.  All problems are framed as
+  maximization; simple regret is $f^* - \text{best observed}$.
+  Engineering optimal values are derived from exhaustive corner search
+  ($2^d$ vertices) rather than random sampling, which systematically
+  undershoots vertex maxima on monotone functions (see
+  Section~\ref{sec:gp}).}
+\label{tab:problems}
+\begin{tabular}{llcll}
+\toprule
+Problem & Type & $d$ & Domain & $f^*$ \\
+\midrule
+Branin          & Synthetic    & 2  & standard          & $-0.3979$ \\
+Six-Hump Camel  & Synthetic    & 2  & $[-3,3]\times[-2,2]$ & $1.0316$ \\
+Hartmann-6      & Synthetic    & 6  & $[0,1]^6$         & $3.3224$  \\
+Piston          & Engineering  & 7  & multi-scale       & $1.20$    \\
+Borehole        & Engineering  & 8  & multi-scale       & $310.0$   \\
+Ackley-10D      & Synthetic    & 10 & $[-5,5]^{10}$     & $0.0$     \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\textbf{Synthetic problems} (Branin, Six-Hump Camel, Hartmann-6,
+Ackley-10D) wrap BoTorch's built-in test functions with
+\texttt{negate=True} to convert minimization to maximization;
+optimal values are analytically known.
+The Ackley bounds are narrowed from BoTorch's default
+$[-32.768, 32.768]^{10}$ to the literature-standard $[-5, 5]^{10}$.
+
+\textbf{Engineering problems} model physical systems with inputs at
+physically meaningful, heterogeneous scales.
+\emph{Borehole} (8D) models water flow through a borehole; inputs
+include borehole radius, hydraulic transmissivities, water-table
+elevations, and aquifer conductivity, sourced from SMT's
+\texttt{WaterFlow}.
+\emph{Piston} (7D) models piston cycle time as a function of mass $M$,
+surface area $S$, initial gas volume $V_0$, spring stiffness $k$,
+atmospheric pressure $P_0$, ambient temperature $T_a$, and gas
+temperature $T_0$ \citep{surjanovic2013virtual}.
+Piston is absent from the SMT version used, so it is implemented
+manually from the standard closed-form formula.
+For both engineering functions the global maximum lies at a box vertex;
+optimal values are obtained by exhaustive corner evaluation
+($2^8 = 256$ and $2^7 = 128$ vertices respectively) and a small
+conservative buffer to guarantee non-negative simple regret.
+
+% ----------------------------------------------------------
+\subsection{Statistical Methodology}
+\label{sec:stats}
+
+With four strategies and six problems, I require a comparison
+framework that is robust to non-Gaussian, heavy-tailed regret
+distributions and avoids the inflated type-I error of repeated
+pairwise $t$-tests.
+Following \citet{demsar2006statistical}, I use the Friedman rank test
+with Nemenyi post-hoc pairwise comparisons.
+
+\paragraph{Friedman test.}
+Each (problem, seed) pair forms one block; the four strategies are
+ranked by final regret within each block, rank 1 indicating best.
+This yields $N = 60$ blocks (6 problems $\times$ 10 seeds) and
+$k = 4$ strategies.
+The Friedman statistic tests the null hypothesis that all strategies
+have equal expected rank.
+
+\paragraph{Nemenyi post-hoc test.}
+On rejection of the Friedman null, all $\binom{4}{2} = 6$ pairwise
+comparisons are performed using Nemenyi's test at $\alpha = 0.05$
+\citep{terpilowski2019scikit}.
+Two strategies are deemed \emph{statistically indistinguishable} when
+their average-rank difference is less than the critical difference
+\[
+  \mathrm{CD}
+    = q_\alpha \sqrt{\frac{k(k+1)}{6N}}
+    = q_{0.05}\sqrt{\frac{4 \times 5}{6 \times 60}},
+\]
+where $q_\alpha$ is the critical value from the Studentized range
+distribution (divided by $\sqrt{2}$); $\mathrm{CD} \approx 0.61$ for
+$k=4$, $N=60$, $\alpha=0.05$.
+Results are visualized as a Critical Difference (CD) diagram
+(Figure~\ref{fig:cd}), where horizontal bars connect strategies that
+are not significantly different from one another.
+The CD value is computed analytically inside the plotting function to
+remain correct under any change to $N$ or $k$.
