@@ -21,6 +21,7 @@ results/*
 # OS
 .DS_Store
 Thumbs.db
+**/.DS_Store
 
 # IDEs
 .vscode/
@@ -56,3 +57,9 @@ report/*.synctex.gz
 report/*.fls
 report/*.fdb_latexmk
 report/*.toc
+
+cat >> .gitignore << 'EOF'
+
+# Exception: commit the compiled report PDF for easy viewing
+!report/bo_benchmark_report.pdf
+EOF
