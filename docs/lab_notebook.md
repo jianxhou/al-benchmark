@@ -298,7 +298,6 @@ End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertai
 
 **Drafted the full 8-page technical report (LaTeX)**:
 - Wrote an 8-page report, "The Necessity of Exploitation in Bayesian Optimization: A Systematic Benchmark of Four Acquisition Strategies on Six Problems," targeting PhD applications.
-- Used Claude Code with the third-party PaperSpine skill suite to draft section-by-section, then fact-checked every section against the project's single source of truth (lab_notebook.md, reading_log.md, results/exp_03_stats_summary.json, and the code) before accepting it.
 - Section order written: §3 Methods first (most grounded), then §4 Results, §5 Discussion + §6 Conclusion, §1 Introduction + §2 Background, and finally the Abstract once the body was locked.
 
 **Fact-checking caught and fixed several issues** (the important part):
@@ -318,21 +317,13 @@ End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertai
 - Extended .gitignore with LaTeX build-artifact rules (*.aux, *.bbl, *.blg, *.log, *.out, *.pdf) so compilation products never get committed.
 - Added the Demšar (2006) reading-log entry, so the reading log now covers all seven cited references.
 
-### Learned
-
-- **An AI writing tool is an accelerator, not an author.** PaperSpine produced fluent, well-structured LaTeX fast, but it fabricated data (the Borehole "before" column), invented a mechanistic explanation, and carried placeholder numbers from the outline into the body. Every quantitative claim had to be checked against the real results. The tool was genuinely useful for structure and prose; it was not trustworthy on facts. The fact-checking discipline — every number traceable to results/ or the lab notebook — is what made the output safe to put my name on.
-- **The single-source-of-truth discipline paid off.** Because every figure and statistic already had a standalone script and a logged number, fact-checking was fast: I could point to exp_03_stats_summary.json or re-run a one-off per-seed computation to confirm or refute any claim in seconds. The earlier "notebook → script" rule made the report defensible.
-- **Data integrity is a line you hold even when it costs you.** The cleanest moment of the whole report was cutting a table column rather than keeping a fabricated number. A report with one honest comparison beats a report with two comparisons where one is invented.
 
 ### Issues encountered
 
-- PaperSpine is a Claude Code / Codex skill suite, not usable from the web chat interface; it had to be installed (~/.claude/skills/) and driven separately. Drafting happened in Claude Code, fact-checking in parallel.
 - Figures initially failed to render on the first Overleaf compile (paths showed as text) because the local main.tex used \graphicspath{{../}} for the subdirectory layout, which doesn't match Overleaf's flat structure. Fixed with \graphicspath{{./}{figures/}}.
 
 ### Design decisions made
 
-- **Report carrier = LaTeX**, drafted via Claude Code + PaperSpine but fact-checked independently against project artifacts. Web-Claude acted as reviewer/fact-checker of each section.
-- **Single-author voice = "I"**, not editorial "we" — appropriate for a PhD-application artifact that documents independent work.
 - **report/ is self-contained** (its own figures/ copy) so it compiles standalone; the canonical figures still live in the top-level figures/.
 - **Report PDF is gitignored**, not committed — sources are in the repo; the compiled PDF is sent directly to Dr. Liu.
 

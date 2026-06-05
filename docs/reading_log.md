@@ -230,7 +230,7 @@ of which algorithms are statistically separable.
   because per-dataset scores are not drawn from a common commensurable
   distribution and parametric assumptions (normality, homoscedasticity) generally
   fail.
-- The Friedman test with a suitable post-hoc (Nemenyi for all-pairs) is the
+- The Friedman test with a suitable post-hoc (Nemenyi for all-pairs) is thes
   recommended general procedure; the critical difference quantifies the minimum
   average-rank gap that counts as significant.
 
