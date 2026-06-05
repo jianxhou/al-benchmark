@@ -140,10 +140,10 @@ The editable install (`pip install -e .`) makes `al_benchmark` importable across
 Run a single problem across all strategies (10 seeds, 20 iterations):
 
 ```bash
-python experiments/exp_02_strategies_per_problem.py --problem branin
+python experiments/exp_02_strategies_per_problem.py --problem Branin
 ```
 
-Available problems: `branin`, `sixhumpcamel`, `hartmann6`, `piston`, `borehole`, `ackley`. Each run writes a JSON result file to `results/` and a figure to `figures/`.
+Available problems (case-sensitive): `Branin`, `SixHumpCamel`, `Hartmann6`, `Piston`, `Borehole`, `Ackley`. Each run writes a JSON result file to `results/` and a figure to `figures/`.
 
 Run the statistical analysis (Friedman + Nemenyi + CD diagram) over the full 6-problem suite:
 
