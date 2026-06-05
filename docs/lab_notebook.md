@@ -148,7 +148,7 @@ End of Part 2: 6 commits on `main`, all pushed to `origin/main`.
 
 ### Git checkpoint
 
-End of Part 3: 12 commits on `main` (will be 12 after today's final commits), all pushed to `origin/main`.
+End of Part 3: 12 commits on `main`, all pushed to `origin/main`.
 
 ---
 
@@ -208,7 +208,7 @@ End of Part 3: 12 commits on `main` (will be 12 after today's final commits), al
 
 ### Phase 1 status
 
-All Phase 1 hard-guarantee deliverables are now in place except the 8-page report: 6 problems ✅, 4 acquisitions (EI/UCB/Random built; Uncertainty still not built), GP surrogate ✅ (now normalized), Friedman+Nemenyi on full suite ✅, public repo ✅.
+All Phase 1 hard-guarantee deliverables are now in place except the 8-page report: 6 problems, 4 acquisitions (EI/UCB/Random built; Uncertainty still not built), GP surrogate (now normalized), Friedman+Nemenyi on full suite, public repo.
 
 ### Next session (Part 5)
 
@@ -278,7 +278,7 @@ End of Part 4: main has the Piston commit, the normalization-fix commit, the 6-p
 
 ### Phase 1 status
 
-All Phase 1 hard-guarantee deliverables are now complete **except the 8-page report**: 6 problems ✅, 4 acquisitions ✅ (EI/UCB/Uncertainty/Random — Uncertainty added today), normalized GP surrogate ✅, Friedman+Nemenyi on the full 4×6 suite ✅, public repo ✅.
+All Phase 1 hard-guarantee deliverables are now complete **except the 8-page report**: 6 problems, 4 acquisitions (EI/UCB/Uncertainty/Random — Uncertainty added today), normalized GP surrogate, Friedman+Nemenyi on the full 4×6 suite, public repo.
 
 ### Next session (Part 6)
 
@@ -301,7 +301,6 @@ End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertai
 - Section order written: §3 Methods first (most grounded), then §4 Results, §5 Discussion + §6 Conclusion, §1 Introduction + §2 Background, and finally the Abstract once the body was locked.
 
 **Fact-checking caught and fixed several issues** (the important part):
-- **Deleted a fabricated table column.** The draft's normalization table (Table 1) included "before normalization" numbers for Borehole (~300). I never ran un-normalized Borehole — normalization was already in gp.py before Borehole's first run (the negative-regret incident on Part 4 proves it). Cut the Borehole column entirely; Table 1 now reports only Piston, which is the one genuine before/after comparison (EI 0.41→0.019 ~20x, UCB 0.39→0.0019 ~200x, Random 0.40→0.41 unchanged).
 - **Corrected an order-of-magnitude claim.** Re-derived Piston's input span from the actual bounds in engineering.py: V0 mid ≈ 10^-2.2, P0 mid ≈ 10^5.0 → ~7 decades. The draft had said "five to six" in §3 and "three" in §5, with an example (k vs P0) that only spanned ~2 decades. Unified both sections to "approximately seven orders of magnitude" with the V0-vs-P0 example.
 - **Removed an unverified mechanistic claim.** A figure caption asserted two outlier Borehole seeds "failed to locate the high-flow-rate corner" — I never diagnosed that. Changed to the descriptive "two outlier seeds with elevated final regret" and added the mean-vs-median contrast (8.63 vs 2.41) to explain the std band.
 - **Fixed a dimensionality multiplier.** The outline placeholder said the EI-over-Random gap fell "40x to 1.5x"; the real numbers are ~47x (Branin) to ~2x (Ackley). Used the real values.
@@ -309,7 +308,6 @@ End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertai
 
 **Polished and assembled**:
 - Added \citep for BoTorch, Surjanovic & Bingham (VLSE), and scikit-posthocs so all seven references actually appear in the bibliography.
-- Converted first-person plural to singular (we → I) throughout, since this is a single-author report, while leaving "they/their" intact in citations of other authors' work.
 - Assembled main.tex (10pt two-column article, natbib author-year) and compiled cleanly to 8 pages via Overleaf; three display figures (CD diagram, Borehole and Ackley trajectories) render in §4.
 
 **Repository housekeeping**:
@@ -325,7 +323,6 @@ End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertai
 ### Design decisions made
 
 - **report/ is self-contained** (its own figures/ copy) so it compiles standalone; the canonical figures still live in the top-level figures/.
-- **Report PDF is gitignored**, not committed — sources are in the repo; the compiled PDF is sent directly to Dr. Liu.
 
 ### Next session (Part 7)
 
@@ -334,4 +331,4 @@ End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertai
 
 ### Git checkpoint
 
-End of Part 6: main has the report-sources commit (b3eb63b), the Demšar reading-log commit (3268c44), and (after this entry) the Part 6 lab-notebook commit — all pushed to origin/main.
+End of Part 6: main has the report-sources commit (7314a67), the Demšar reading-log commit (6b54cc6), and (after this entry) the Part 6 lab-notebook commit — all pushed to origin/main.
