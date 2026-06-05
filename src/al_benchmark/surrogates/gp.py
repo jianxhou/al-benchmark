@@ -14,14 +14,10 @@ from torch import Tensor
 
 
 class GPSurrogate:
-    """Gaussian Process surrogate built on BoTorch's SingleTaskGP.
+    """GP surrogate wrapping BoTorch's SingleTaskGP.
 
-    Inputs are normalized to [0, 1]^d using the known problem bounds, and
-    outputs are standardized to zero mean / unit variance. This is essential
-    for problems whose inputs span very different scales (e.g. the Borehole
-    and Piston engineering functions), where an un-normalized GP fails to
-    learn sensible per-dimension lengthscales and BO degrades toward random
-    search. Follows standard BoTorch practice.
+    Uses fixed-bounds input normalization ([0,1]^d) and output
+    standardization so the GP remains calibrated on multi-scale inputs.
     """
 
     name = "GP"

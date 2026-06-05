@@ -1,10 +1,4 @@
-"""
-Random sampling strategy: pick a uniform-random point in bounds.
-
-This is the baseline that any "smart" strategy should beat. If Random
-matches your strategy's performance on a problem, the BO machinery
-isn't helping — useful signal that something is off.
-"""
+"""Uniform-random baseline: Sobol sampling with no surrogate model."""
 from botorch.models.model import Model
 from botorch.utils.sampling import draw_sobol_samples
 from torch import Tensor

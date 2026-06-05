@@ -53,10 +53,8 @@ def run_bo(
     Returns:
         BOResult with the full trajectory.
     """
-    # ---- 1. Reproducibility ----
     torch.manual_seed(seed)
 
-    # ---- 2. Initial design ----
     if n_init is None:
         n_init = 2 * problem.dim
     train_x = draw_sobol_samples(bounds=problem.bounds, n=n_init, q=1).squeeze(1)
@@ -69,7 +67,6 @@ def run_bo(
         print(f"Initial best: {best_observed[-1]:.4f}  "
               f"(regret {regret_history[-1]:.4f})")
 
-    # ---- 3. BO main loop ----
     surrogate = GPSurrogate()
     for i in range(n_iter):
         # Fit surrogate to current data
@@ -97,7 +94,6 @@ def run_bo(
                   f"best = {best_observed[-1]:.4f}  "
                   f"regret = {regret_history[-1]:.4f}")
 
-    # ---- 4. Package the result ----
     return BOResult(
         problem_name=problem.name,
         strategy_name=strategy.name,
