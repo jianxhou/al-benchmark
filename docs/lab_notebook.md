@@ -331,7 +331,7 @@ End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertai
 
 ### Git checkpoint
 
-End of Part 6: main has the report-sources commit (7314a67), the Demšar reading-log commit (6b54cc6), and (after this entry) the Part 6 lab-notebook commit — all pushed to origin/main.
+End of Part 6: main has the report-sources commit (524f071), the Demšar reading-log commit (9cfd462), and (after this entry) the Part 6 lab-notebook commit — all pushed to origin/main.
 
 ---
 
