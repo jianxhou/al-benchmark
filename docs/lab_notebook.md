@@ -332,3 +332,83 @@ End of Part 5: main has the lint-fix commit, the CD-diagram redraw, the Uncertai
 ### Git checkpoint
 
 End of Part 6: main has the report-sources commit (7314a67), the Demšar reading-log commit (6b54cc6), and (after this entry) the Part 6 lab-notebook commit — all pushed to origin/main.
+
+---
+
+# Phase 2, Part N: Dimension dependence and mechanism of scale-disparity failure
+
+Replace N with the next Part number in lab_notebook.md. This entry records the scale-disparity failure study from hypothesis to locked claim, including the mid-course falsification and probe fix.
+
+## Goal
+
+Study BO failure under heterogeneous input scale (dimensions whose numeric ranges differ by several orders of magnitude): at what scale does failure occur, what mechanism drives it, and does it depend on problem dimension.
+
+## Experiment design
+
+Script `exp_scale_failure.py`. Key design points:
+
+- The GP is fit WITHOUT Normalize, on raw multi-scale inputs. Production code `gp.py` always applies `Normalize(bounds)`; by ARD scale invariance, with correct bounds the framework is immune to scale disparity, so studying the failure requires removing that transform. Outputs are still standardized (output scale is not the issue).
+- Scale wrapper: the problem is defined on the unit reference cube [0,1]^d; the first half of the dimensions are multiplied by a scale factor s (log10s swept). The objective landscape is unchanged; only the coordinate system the GP sees is stretched.
+- Strategies: UCB(beta=2), Random(Sobol). Random is the scale-invariant control; its curve must not move with s, otherwise the wrapper is buggy.
+- Mechanism logging: per fit, record the median of the kernel off-diagonal and the underflow fraction (frac_underflow), the fitted lengthscale on a scaled vs an unscaled dimension, and Cholesky/jitter warnings plus fit-failure flags. Used to separate two failure mechanisms: kernel exp underflow vs Cholesky decomposition failure.
+
+## Process and corrections (important)
+
+1. Initial hypothesis (from the first-order derivation in threshold_derivation_v0.md): the float32 failure knee sits about 0.18 decade (1.5x) below float64, and since n and the initial lengthscale cancel in that ratio, it is a parameter-free prediction.
+2. Branin data briefly supported a stronger story, "precision changes the failure mechanism" (float64 pure underflow, float32 underflow plus numerical failure).
+3. Running Hartmann6 falsified that story: float32 and float64 knees roughly coincide on Hartmann6, so the "precision split" is specific to Branin, not a general rule.
+4. A probe bug was also found: the mechanism probe originally used the max of the kernel off-diagonal as the underflow indicator, which showed 1.0 for Hartmann6 at high scale (apparent no underflow), contradicting theory. Diagnosis (diag2) found the cause: after the GP degenerates, optimize_acqf repeatedly returns near-duplicate points whose pairwise distance is about 0 and kernel value about 1, captured by max and masking the true underflow. Fix: switch the probe to the off-diagonal median (median_offdiag) and underflow fraction (frac_underflow). After the fix, Hartmann6 shows median_offdiag going to 0 and frac_underflow going to 1, confirming underflow does occur.
+5. The parameter-free 0.18 decade (1.5x) precision prediction was ultimately judged not to hold: precision is only a weak effect (float32 slightly earlier on Branin, knees coincident on Hartmann6).
+
+## Results
+
+All validity checks pass: Random median regret is constant across log10s (scale-invariant control); each problem at log10s=0 (or its smallest scale) has UCB far better than Random (healthy baseline).
+
+uflow knee (the log10s where frac_underflow crosses 0.5; a mechanism measure independent of BO performance, hence not affected by the confound), float64 UCB:
+
+| dim d | problem | uflow knee | healthy baseline |
+|---|---|---|---|
+| 2 | Branin | 3.78 | yes |
+| 2 | Ackley2 | 2.30 | yes |
+| 4 | Ackley4 | 1.38 | yes |
+| 6 | Hartmann6 | 1.56 | yes |
+| 6 | Ackley6 | 1.01 | weak |
+| 8 | Ackley8 | 1.04 | weak |
+
+The controlled Ackley sweep (same function family, d=2,4,6,8) has a monotonically decreasing uflow knee: 2.30, 1.38, 1.01, 1.04 (plateau at high d). Branin and Hartmann6 corroborate the trend at d=2 and d=6.
+
+The mechanism chain is consistent across dimensions: the lengthscale first grows with scale to track it (Branin float64 grows to about 450, Ackley4 to about 1.0), then collapses back to the mode of the dimension-scaled prior at the knee (about 0.205*sqrt(d), about 0.50 at d=6, about 0.29 at d=2), frac_underflow goes to 1, and BO degrades to random. The chol/fail flags stay about 0 throughout, so failure is via kernel underflow, not Cholesky failure.
+
+## Confound identification and handling
+
+Confound: as dimension grows, two things change at once, the scale-failure knee moves (what we want to measure), and BO degrades from dimensionality plus budget (curse of dimensionality). For Ackley at d=6,8 the healthy baseline is already near Random (the summary table marks these weak), so their regret knee is contaminated and cannot be attributed purely to scale.
+
+Handling: use uflow as the primary knee measure rather than regret. uflow measures kernel underflow directly, independent of how well BO performs, so it bypasses this confound. The analysis script `analyze_scale_knees.py` automatically flags rows with a weak baseline, indicating that their regret knee is untrustworthy while their uflow knee remains valid.
+
+## Locked claim
+
+In short-budget BO, failure from heterogeneous input scale onsets monotonically earlier as problem dimension grows (about log10s 3 to 4 at 2D, about 1 to 1.5 at 6D). The mechanism is consistent across dimensions: BoTorch's default Hvarfner dimension-scaled LogNormal prior, when per-dimension data is sparse, pins the lengthscale at the prior mode, preventing it from tracking scale, which causes RBF kernel off-diagonal underflow, loss of posterior structure, and degradation of BO to random. At low dimension the MLL can still push the lengthscale away from the mode to track scale, delaying failure; at high dimension it cannot. Failure is via kernel underflow, not Cholesky failure, and precision is only a weak effect. The prior was designed to help high-dimensional BO, yet under heterogeneous scale it advances failure instead.
+
+## Limitations
+
+1. The absolute knee position is function dependent: at the same d=2, Branin's knee is 3.78 while Ackley2's is only 2.30, a clear difference, most likely from the different native domains of each function interacting with the prior after the unit mapping. What can be concluded is the monotone decrease with dimension, not any absolute value.
+2. The regret knee for d >= 6 is confounded; only the uflow knee is clean (the analysis script marks these weak).
+3. Only UCB is tested; EI/LogEI is not yet verified.
+4. "The prior is the culprit" is currently an inference (lengthscale frozen at the prior mode); there is no swap-prior or remove-prior ablation yet to verify causation directly.
+
+## Artifacts
+
+- `exp_scale_failure.py`: experiment script (with the median/uflow-fixed mechanism probe and variable-dimension Ackley)
+- `analyze_scale_knees.py`: aggregation and analysis, produces the knee table and knee_vs_dimension.png
+- `knee_vs_dimension.png`: core figure (knee vs dimension)
+- `threshold_derivation_v0.md`: ARD invariance theorem and failure-threshold derivation
+- Data: `results_branin_v2_newprobe.csv`, `results_hartmann6_newprobe.csv`, `results_ackley2/4/6/8.csv` (all new-probe, with the uflow column)
+- `results_branin_phase1.csv`: Branin old-probe; its regret and lengthscale conclusions still hold, the off-diagonal column is superseded by the new probe
+
+## To do (gaps before writing)
+
+1. Add one acquisition strategy (EI or LogEI) to confirm the failure is not UCB specific.
+2. Re-run with a unified seed count (currently 15 and 30 are mixed) for clean, comparable data.
+3. Causal ablation: swap or remove the prior (for example use a gamma prior or fix a larger initial lengthscale) and check whether failure is delayed, to verify "the prior is the culprit" directly.
+4. Assemble related work, position against De Ath, Ament, Hvarfner, Papenmeier, and confirm the publication status of each reference.
+5. TMLR submission logistics: OpenReview account, LaTeX template, formatting requirements.
