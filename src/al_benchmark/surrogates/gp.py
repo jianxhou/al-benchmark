@@ -1,10 +1,4 @@
-"""
-Gaussian Process surrogate model.
-
-Wraps BoTorch's SingleTaskGP with input normalization, output
-standardization, and marginal-likelihood fitting, giving a clean
-`fit(train_x, train_y, bounds)` -> fitted model interface.
-"""
+"""GP surrogate wrapping BoTorch's SingleTaskGP."""
 from botorch.fit import fit_gpytorch_mll
 from botorch.models import SingleTaskGP
 from botorch.models.transforms.input import Normalize
@@ -14,10 +8,8 @@ from torch import Tensor
 
 
 class GPSurrogate:
-    """GP surrogate wrapping BoTorch's SingleTaskGP.
-
-    Uses fixed-bounds input normalization ([0,1]^d) and output
-    standardization so the GP remains calibrated on multi-scale inputs.
+    """SingleTaskGP with fixed-bounds input normalization to [0,1]^d and
+    output standardization, so the GP stays calibrated on multi-scale inputs.
     """
 
     name = "GP"
@@ -26,16 +18,10 @@ class GPSurrogate:
         self.model: SingleTaskGP | None = None
 
     def fit(self, train_x: Tensor, train_y: Tensor, bounds: Tensor) -> SingleTaskGP:
-        """Fit a GP to the given training data.
+        """Fit on raw-scale train_x (n, dim), train_y (n, 1); bounds (2, dim).
 
-        Args:
-            train_x: shape (n, dim) training inputs (raw, un-normalized scale).
-            train_y: shape (n, 1) training outputs.
-            bounds: shape (2, dim) search-space bounds, used to normalize inputs.
-
-        Returns:
-            The fitted SingleTaskGP model. The transforms are baked into the
-            model, so callers pass raw-scale points and get raw-scale predictions.
+        Transforms are baked into the returned model: callers pass raw-scale
+        points and get raw-scale predictions.
         """
         dim = train_x.shape[-1]
         self.model = SingleTaskGP(

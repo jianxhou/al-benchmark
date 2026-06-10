@@ -1,10 +1,4 @@
-"""
-The core Bayesian Optimization loop.
-
-This module ties together problems, surrogates, and strategies into a
-single function: `run_bo`. Given a problem, a strategy, and a few
-hyperparameters, it runs sequential BO and returns the full trajectory.
-"""
+"""Sequential Bayesian optimization loop (`run_bo`)."""
 from dataclasses import dataclass, field
 
 import torch
@@ -40,18 +34,10 @@ def run_bo(
     n_iter: int = 20,
     verbose: bool = False,
 ) -> BOResult:
-    """Run sequential BO for `n_iter` steps after an LHS initial design.
+    """Run a Sobol initial design, then `n_iter` acquisition steps (maximization).
 
-    Args:
-        problem: the benchmark problem to optimize (maximization).
-        strategy: the acquisition strategy that picks each next point.
-        seed: random seed (controls initial design + strategy randomness).
-        n_init: number of initial Sobol points. Defaults to 2 * problem.dim.
-        n_iter: number of BO iterations after the initial design.
-        verbose: if True, print per-iteration progress.
-
-    Returns:
-        BOResult with the full trajectory.
+    `seed` controls both the initial design and strategy randomness.
+    `n_init` defaults to 2 * problem.dim.
     """
     torch.manual_seed(seed)
 
@@ -69,10 +55,8 @@ def run_bo(
 
     surrogate = GPSurrogate()
     for i in range(n_iter):
-        # Fit surrogate to current data
         model = surrogate.fit(train_x, train_y, problem.bounds)
 
-        # Strategy picks the next point
         candidate = strategy.select_next(
             model=model,
             bounds=problem.bounds,
@@ -80,10 +64,8 @@ def run_bo(
             train_y=train_y,
         )
 
-        # Evaluate the true function
         new_y = problem(candidate).unsqueeze(-1)
 
-        # Update data + tracking
         train_x = torch.cat([train_x, candidate])
         train_y = torch.cat([train_y, new_y])
         best_observed.append(train_y.max().item())

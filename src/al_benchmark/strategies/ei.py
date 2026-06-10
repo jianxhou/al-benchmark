@@ -1,10 +1,4 @@
-"""
-Expected Improvement (EI) acquisition strategy.
-
-EI scores each candidate point by the expected amount it would improve
-over the best value seen so far. It balances exploration and exploitation
-and is the default workhorse of Bayesian optimization.
-"""
+"""Expected Improvement acquisition strategy."""
 from botorch.acquisition import ExpectedImprovement
 from botorch.models.model import Model
 from botorch.optim import optimize_acqf
@@ -14,13 +8,9 @@ from al_benchmark.strategies.base import BaseStrategy
 
 
 class EI(BaseStrategy):
-    """Expected Improvement strategy.
+    """Expected Improvement over the best observed value.
 
-    Args:
-        num_restarts: number of multi-starts for the inner acquisition
-            optimization (more = more reliable but slower).
-        raw_samples: number of random samples used to initialize the
-            acquisition optimizer.
+    num_restarts / raw_samples configure the inner acquisition optimizer.
     """
 
     def __init__(self, num_restarts: int = 10, raw_samples: int = 64) -> None:
@@ -35,8 +25,6 @@ class EI(BaseStrategy):
         train_x: Tensor,
         train_y: Tensor,
     ) -> Tensor:
-        # best_f is the current best observed value; EI measures expected
-        # improvement OVER this threshold.
         acq = ExpectedImprovement(model=model, best_f=train_y.max())
 
         candidate, _ = optimize_acqf(

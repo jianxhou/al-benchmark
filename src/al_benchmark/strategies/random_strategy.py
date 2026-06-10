@@ -19,7 +19,5 @@ class Random(BaseStrategy):
         train_x: Tensor,       # unused
         train_y: Tensor,       # unused
     ) -> Tensor:
-        # Use Sobol to draw one point. Sobol is more uniformly space-filling
-        # than uniform.random, especially in low dim. The seed has already
-        # been set by run_bo, so successive calls produce different points.
+        # run_bo already seeded the global RNG, so successive calls differ.
         return draw_sobol_samples(bounds=bounds, n=1, q=1).squeeze(1)

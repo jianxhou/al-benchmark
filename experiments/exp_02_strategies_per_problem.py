@@ -1,9 +1,7 @@
 """
 Experiment 02: compare acquisition strategies on a given problem.
 
-Generalization of exp_01: instead of hard-coding the problem, take it
-as a command-line argument. This allows the same script to run on
-Branin, Hartmann6, or Ackley with identical protocol.
+Same protocol as exp_01, with the problem taken as a command-line argument.
 
 Usage:
     python experiments/exp_02_strategies_per_problem.py --problem Branin
@@ -28,7 +26,6 @@ from al_benchmark.strategies.uncertainty import Uncertainty
 
 warnings.filterwarnings("ignore")
 
-# Problem registry: name -> factory function
 PROBLEMS = {
     "Branin": lambda: Branin(),
     "Hartmann6": lambda: Hartmann6(),
@@ -38,7 +35,6 @@ PROBLEMS = {
     "Piston": lambda: Piston(),
 }
 
-# Strategy registry: name -> factory function
 STRATEGIES = {
     "EI": lambda: EI(),
     "UCB": lambda: UCB(beta=2.0),
@@ -77,7 +73,6 @@ def main():
     print(f"  Iterations per run: {args.n_iter}")
     print(f"  Seeds: {seeds}\n")
 
-    # ---- Run experiments ----
     results = {}
     for strat_name, strat_factory in STRATEGIES.items():
         print(f"  {strat_name}:")
@@ -94,7 +89,6 @@ def main():
             print(f"    seed {seed:2d}: final regret = {result.final_regret:.4f}")
         results[strat_name] = np.array(regret_traj)
 
-    # ---- Compute stats ----
     stats = {}
     for strat_name, traj in results.items():
         stats[strat_name] = {
@@ -105,7 +99,6 @@ def main():
             "iqr_hi": np.percentile(traj, 75, axis=0),
         }
 
-    # ---- Plot ----
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
     for ax, scale in zip(axes, ["linear", "log"], strict=True):
         for strat_name in results:
@@ -131,7 +124,6 @@ def main():
     )
     plt.tight_layout()
 
-    # ---- Save outputs ----
     project_root = Path(__file__).parent.parent
     tag = args.problem.lower()
     fig_path = project_root / "figures" / f"exp_02_{tag}_strategies.png"
@@ -153,7 +145,6 @@ def main():
         json.dump(serialized, f, indent=2)
     print(f"Results JSON saved to {results_path}")
 
-    # ---- Summary ----
     print(f"\n=== Summary on {args.problem} (final regret) ===")
     print(f"{'Strategy':<12} {'Mean':>10} {'Std':>10} {'Median':>10}")
     print("-" * 44)

@@ -1,13 +1,4 @@
-"""
-Uncertainty (pure-exploration) acquisition strategy.
-
-Selects the point of maximum posterior standard deviation, ignoring the
-posterior mean entirely. This is the pure-exploration extreme of the
-exploration-exploitation spectrum: where Random explores blindly and EI/UCB
-balance exploration with exploitation, Uncertainty always probes wherever the
-surrogate is least confident. Useful as a principled baseline that isolates
-the value of the GP's uncertainty estimate on its own.
-"""
+"""Pure-exploration acquisition strategy (maximum posterior std)."""
 from botorch.acquisition import PosteriorStandardDeviation
 from botorch.models.model import Model
 from botorch.optim import optimize_acqf
@@ -17,11 +8,10 @@ from al_benchmark.strategies.base import BaseStrategy
 
 
 class Uncertainty(BaseStrategy):
-    """Pure-exploration strategy: maximize posterior standard deviation.
+    """Maximize posterior standard deviation, ignoring the mean.
 
-    Args:
-        num_restarts: multi-starts for the inner optimization.
-        raw_samples: random seeds for the inner optimizer.
+    Baseline that isolates the value of the GP's uncertainty estimate.
+    num_restarts / raw_samples configure the inner optimizer.
     """
 
     def __init__(

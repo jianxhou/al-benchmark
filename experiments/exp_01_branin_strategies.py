@@ -1,9 +1,8 @@
 """
 Experiment 01: compare EI, UCB, Random on Branin across multiple seeds.
 
-This is the first 'real' benchmark experiment using the modular codebase.
-Output: a regret-curve figure with mean + std band per strategy,
-and a JSON file with the raw results for later re-analysis.
+Outputs a regret-curve figure (mean + std band per strategy) and a JSON
+file with the raw trajectories.
 """
 import json
 import warnings
@@ -20,8 +19,7 @@ from al_benchmark.strategies.ucb import UCB
 
 warnings.filterwarnings("ignore")
 
-# ---- Experiment config ----
-SEEDS = list(range(10))   # 10 seeds: 0..9
+SEEDS = list(range(10))
 N_ITER = 20
 STRATEGIES = [
     ("EI", lambda: EI()),
@@ -30,14 +28,13 @@ STRATEGIES = [
 ]
 PROBLEM_FACTORY = lambda: Branin()
 
-# ---- Run experiments ----
-# Structure: results[strategy_name] = array of shape (n_seeds, n_iter + n_init + 1)
+# results[strategy_name]: array of shape (n_seeds, n_init + n_iter + 1)
 print(f"Running {len(STRATEGIES)} strategies x {len(SEEDS)} seeds on Branin...")
 results = {}
 
 for strat_name, strat_factory in STRATEGIES:
     print(f"\n  {strat_name}:")
-    regret_traj = []   # list of regret_history per seed
+    regret_traj = []
     for seed in SEEDS:
         result = run_bo(
             problem=PROBLEM_FACTORY(),
@@ -48,10 +45,8 @@ for strat_name, strat_factory in STRATEGIES:
         )
         regret_traj.append(result.regret_history)
         print(f"    seed {seed:2d}: final regret = {result.final_regret:.4f}")
-    results[strat_name] = np.array(regret_traj)  # shape (n_seeds, len_traj)
+    results[strat_name] = np.array(regret_traj)
 
-# ---- Compute stats ----
-# At each iteration index, compute mean & std across seeds.
 print("\nComputing statistics across seeds...")
 stats = {}
 for strat_name, traj in results.items():
@@ -63,7 +58,6 @@ for strat_name, traj in results.items():
         "iqr_hi": np.percentile(traj, 75, axis=0),
     }
 
-# ---- Plot ----
 print("\nPlotting...")
 fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
 colors = {"EI": "#1f77b4", "UCB": "#2ca02c", "Random": "#d62728"}
@@ -92,7 +86,6 @@ plt.suptitle(
 )
 plt.tight_layout()
 
-# ---- Save outputs ----
 project_root = Path(__file__).parent.parent
 fig_path = project_root / "figures" / "exp_01_branin_strategies.png"
 fig_path.parent.mkdir(exist_ok=True)
@@ -109,7 +102,6 @@ with open(results_path, "w") as f:
     json.dump(serialized, f, indent=2)
 print(f"Results JSON saved to {results_path}")
 
-# ---- Summary ----
 print("\n=== Summary (final regret) ===")
 print(f"{'Strategy':<12} {'Mean':>10} {'Std':>10} {'Median':>10}")
 print("-" * 44)

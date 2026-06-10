@@ -3,8 +3,7 @@ Experiment 03: Friedman + Nemenyi statistical analysis across all benchmarks.
 
 Loads the JSON result files produced by exp_02_strategies_per_problem.py for
 each problem in PROBLEMS, extracts final regret per (problem, strategy, seed),
-runs Friedman + Nemenyi post-hoc tests, and produces a critical difference
-diagram suitable for inclusion in a paper.
+runs Friedman + Nemenyi post-hoc tests, and draws a critical difference diagram.
 
 Usage:
     python experiments/exp_03_friedman_nemenyi.py
@@ -94,7 +93,7 @@ def compute_avg_ranks(matrix: np.ndarray) -> pd.Series:
 
 def plot_cd_diagram(avg_ranks, nemenyi_pvalues, n_blocks, output_path,
                     n_problems, k, alpha=ALPHA):
-    """Generate and save a publication-quality Demsar-style CD diagram.
+    """Generate and save a Demsar-style CD diagram.
 
     Draws the rank axis, a critical-difference (CD) ruler, and clique bars
     connecting strategies whose average-rank gap is below the CD (i.e. not

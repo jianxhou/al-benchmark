@@ -1,10 +1,4 @@
-"""
-Upper Confidence Bound (UCB) acquisition strategy.
-
-UCB scores each candidate as μ(x) + κσ(x): an optimistic estimate
-that adds a multiple of the predictive std to the predictive mean.
-Larger κ means more exploration; smaller κ means more exploitation.
-"""
+"""Upper Confidence Bound acquisition strategy."""
 from botorch.acquisition import UpperConfidenceBound
 from botorch.models.model import Model
 from botorch.optim import optimize_acqf
@@ -14,16 +8,11 @@ from al_benchmark.strategies.base import BaseStrategy
 
 
 class UCB(BaseStrategy):
-    """Upper Confidence Bound strategy.
+    """Upper Confidence Bound: mu(x) + sqrt(beta) * sigma(x).
 
-    Args:
-        beta: the exploration-exploitation tradeoff coefficient.
-            Larger = more exploration. A common default is 2.0,
-            which corresponds to roughly the 97.5%-quantile under
-            a Gaussian posterior. (Note: BoTorch uses sqrt(beta)
-            internally as the multiplier on sigma.)
-        num_restarts: multi-starts for the inner optimization.
-        raw_samples: random seeds for the inner optimizer.
+    Larger beta = more exploration; beta=2.0 is roughly the 97.5%-quantile
+    under a Gaussian posterior. BoTorch multiplies sigma by sqrt(beta), not
+    beta. num_restarts / raw_samples configure the inner optimizer.
     """
 
     def __init__(
