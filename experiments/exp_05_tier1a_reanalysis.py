@@ -9,8 +9,9 @@ are the new cross-problem analyses run:
 
   Analysis A   Demsar-strict Friedman + Nemenyi on the 10 x 9 matrix
                (51 runs per problem/method aggregated by median).
-  Analysis B   the paper's per-problem procedure: one-sided paired Wilcoxon
-               vs the best-median method, Holm-corrected, alpha = 0.05.
+  Analysis B   the paper's per-problem procedure: paired Wilcoxon vs the
+               best-median method, Holm-corrected, alpha = 0.05; run both
+               one-sided (paper text) and two-sided (their code's default).
   Analysis C   Analysis A repeated at budget slices T = 20, 50, 150, 250.
                At T=20 the d=10 problems contain only the initial design
                (M = 2d = 20), so T=20 is reported with and without them.
@@ -284,11 +285,14 @@ def friedman_nemenyi(matrix: np.ndarray) -> dict:
     }
 
 
-def equivalence_sets(best: dict, fopt: dict, t: int) -> dict:
-    """Per-problem: one-sided paired Wilcoxon vs best-median method, Holm.
+def equivalence_sets(best: dict, fopt: dict, t: int, alternative: str = "greater") -> dict:
+    """Per-problem: paired Wilcoxon vs best-median method, Holm correction.
 
-    p >= alpha after Holm correction -> the method is statistically
-    equivalent to the best on that problem (the paper's Table 2 procedure).
+    p >= alpha after Holm -> the method is statistically equivalent to the
+    best on that problem (the paper's Table 2 procedure). alternative
+    'greater' is the one-sided test the paper text describes; 'two-sided' is
+    what their create_table_data actually computes (scipy wilcoxon default,
+    egreedy/util/plotting.py:748).
     """
     out = {}
     for prob in PROBLEMS:
@@ -302,8 +306,8 @@ def equivalence_sets(best: dict, fopt: dict, t: int) -> dict:
             if np.all(diff == 0):
                 pvals.append(1.0)
             else:
-                # H1: the method's regret exceeds the best method's regret.
-                _, p = stats.wilcoxon(reg[m], reg[best_meth], alternative="greater")
+                # 'greater' H1: the method's regret exceeds the best method's.
+                _, p = stats.wilcoxon(reg[m], reg[best_meth], alternative=alternative)
                 pvals.append(float(p))
         rejected, p_holm, _, _ = multipletests(pvals, alpha=ALPHA, method="holm")
         equivalent = [best_meth] + [
@@ -573,10 +577,28 @@ def main():
     print()
 
     print("=== Analysis B: per-problem equivalent-to-best sets (Wilcoxon + Holm) ===")
-    b = equivalence_sets(best, fopt, T_FULL)
+    b = equivalence_sets(best, fopt, T_FULL, alternative="greater")
+    b2 = equivalence_sets(best, fopt, T_FULL, alternative="two-sided")
+    print("  one-sided (paper text):")
     for prob, rec in b.items():
-        print(f"  {prob:<18} best={rec['best_method']:<8} "
+        print(f"    {prob:<18} best={rec['best_method']:<8} "
               f"set: {', '.join(rec['equivalent_to_best'])}")
+    print("  two-sided (their code's wilcoxon default):")
+    for prob, rec in b2.items():
+        print(f"    {prob:<18} best={rec['best_method']:<8} "
+              f"set: {', '.join(rec['equivalent_to_best'])}")
+    disagreements = {
+        prob: {
+            "one_sided": b[prob]["equivalent_to_best"],
+            "two_sided": b2[prob]["equivalent_to_best"],
+        }
+        for prob in PROBLEMS
+        if b[prob]["equivalent_to_best"] != b2[prob]["equivalent_to_best"]
+    }
+    if disagreements:
+        print("  variants disagree on: " + ", ".join(disagreements))
+    else:
+        print("  variants agree on all problems.")
     cosines_set = set(b["Cosines"]["equivalent_to_best"])
     soft_ok = {"EI", "UCB", "PI"} <= cosines_set
     print(f"  soft check (paper: EI, UCB, PI equivalent on Cosines): "
@@ -653,6 +675,8 @@ def main():
         "validation_gate": gate,
         "analysis_A_friedman_n10": a,
         "analysis_B_equivalence_sets": b,
+        "analysis_B_equivalence_sets_two_sided": b2,
+        "analysis_B_variant_disagreements": disagreements,
         "analysis_B_soft_check_cosines": {
             "expected_superset": ["EI", "UCB", "PI"], "consistent": bool(soft_ok),
         },

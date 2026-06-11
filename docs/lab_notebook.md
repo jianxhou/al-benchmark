@@ -335,9 +335,9 @@ End of Part 6: main has the report-sources commit (524f071), the Demšar reading
 
 ---
 
-# Phase 2, Part N: Dimension dependence and mechanism of scale-disparity failure
+# Phase 2, Part 7: Dimension dependence and mechanism of scale-disparity failure
 
-Replace N with the next Part number in lab_notebook.md. This entry records the scale-disparity failure study from hypothesis to locked claim, including the mid-course falsification and probe fix.
+This entry records the scale-disparity failure study from hypothesis to locked claim, including the mid-course falsification and probe fix.
 
 ## Goal
 
@@ -412,3 +412,37 @@ In short-budget BO, failure from heterogeneous input scale onsets monotonically 
 3. Causal ablation: swap or remove the prior (for example use a gamma prior or fix a larger initial lengthscale) and check whether failure is delayed, to verify "the prior is the culprit" directly.
 4. Assemble related work, position against De Ath, Ament, Hvarfner, Papenmeier, and confirm the publication status of each reference.
 5. TMLR submission logistics: OpenReview account, LaTeX template, formatting requirements.
+---
+
+# Phase 2, Part 8: Tier 1A re-analysis of De Ath et al. (2021) published results
+
+Re-analysis of the raw optimization runs published with "Greed is Good" (ACM TELO 2021). All analyses run on their npz trajectories (github.com/georgedeath/egreedy, commit 4ab1a991e461, results_paper/), kept outside this repository and referenced via DATA_DIR. Script: `experiments/exp_05_tier1a_reanalysis.py`; everything is gated on first reproducing their Table 2.
+
+## Validation gate
+
+Reproduced the full Table 2 median-regret matrix at T=250: 90/90 cells match after rounding to 3 significant figures, plus 4 MAD spot checks (Branin EI/eRandom, logGSobol EI/eFront). The sign convention was verified empirically on a single anchor before the gate (Branin/EI median 4.15e-6 via cumulative min; cumulative max gives 307.7).
+
+## Code-vs-paper discrepancies found while reproducing
+
+Three places where the released code differs from what the paper text (or a naive reading of it) implies. Documentation findings, recorded for methods writing; none changes the paper's qualitative conclusions.
+
+1. Order of operations in the regret trajectory. Their pipeline (egreedy/util/plotting.py:74-78) computes the per-evaluation distance |y - yopt| first and then takes the cumulative min, rather than |cummin(y) - yopt|. The two differ only when an evaluation lands below the recorded yopt, which happens on logSixHumpCamel because its yopt is computed from a coarse xopt (0.0898, -0.7126) and is slightly above the true optimum. Using the naive order fails 4 of the 90 gate cells (logSixHumpCamel EI/eRandom/eFront/Exploit, e.g. 3.32e-4 vs published 7.42e-5); using their order matches all 90.
+2. Table 2's "MAD" is the scaled MAD. The values come from the deprecated scipy.stats.median_absolute_deviation, whose default scale is 1.4826 (the normal-consistency constant). All four spot-check ratios unscaled-vs-published were exactly 1.4826.
+3. Test sidedness. The paper text describes a one-sided paired Wilcoxon signed-rank test against the best method; the released create_table_data calls scipy's wilcoxon with its two-sided default (plotting.py:748). exp_05 runs both variants; they agree on 8 of 10 problems and disagree on WangFreitas (one-sided additionally admits LHS and Explore into the equivalent-to-best set) and logRosenbrock (two-sided additionally admits eRandom).
+
+## Cross-problem statistics (not reported in the paper)
+
+Demsar-strict Friedman at T=250, N=10 problems as blocks, 51 runs aggregated by median, k=9 methods: chi2(8) = 50.66, p = 3.05e-8. Average ranks: eRandom 2.00, eFront 2.20, Exploit 3.50, EI 4.50, PFRandom 5.40, PI 5.50, UCB 6.05, LHS 7.90, Explore 7.95. Nemenyi CD = 3.80 at alpha = 0.05. The greedy arms separate from LHS/Explore/UCB, but the eRandom-EI gap (2.50) sits inside the CD: at N=10 blocks the cross-problem test cannot distinguish the e-greedy methods from EI, even though e-greedy wins on nearly every problem individually. Figure: `figures/cd_diagram_deathdata_n10.png`.
+
+Rank vs magnitude divergence: by average rank eRandom is first (2.00 vs eFront 2.20), but the mixed-effects model on log regret (random intercept per problem, run-within-problem variance component, reference LHS) puts eFront lowest at every budget/floor combination (T=250, floor 1e-6: eFront -6.33, eRandom -5.93, EI -5.85, all se 0.22). The ordering is stable under floor 1e-6 vs 1e-8 and at T=50. Ranks weight each problem equally; the magnitude model is dominated by problems with large log-regret spreads. Two of four fits emitted a statsmodels ConvergenceWarning followed by an internal lbfgs retry; all four report converged=True afterwards (recorded verbatim in the JSON).
+
+Budget slices (T = 20, 50, 150, 250): the greedy advantage grows with budget. eRandom's mean rank moves 3.80 -> 2.60 -> 2.40 -> 2.00 while EI drifts 3.80 -> 4.20 -> 4.50 -> 4.50. At T=20 the d=10 problems contain only the initial design (M = 2d = 20), so the T=20 column is reported with and without them (same qualitative picture). Figure: `figures/budget_slices_deathdata.png`.
+
+Paired effect sizes at T=250 (eRandom/eFront/Exploit vs EI, eRandom vs UCB; paired by run number since runs share initial designs, 10000-resample bootstrap CIs, rank-biserial correlations): on the three d=10 problems the greedy methods beat EI consistently (median paired difference of log regret -0.22 to -0.33, rank-biserial -0.73 to -1.00, CIs excluding 0); on the easy 2D problems the CIs straddle zero, since both methods reach near-floor regret.
+
+## Artifacts
+
+- `experiments/exp_05_tier1a_reanalysis.py`: gate-first script; aborts with per-cell diagnostics if any Table 2 cell fails
+- `results/exp_05_tier1a.json`: provenance (upstream commit, f_opt source file/line per problem, sign convention, pipeline adaptations), per-cell gate results, all analyses
+- `figures/cd_diagram_deathdata_n10.png`, `figures/budget_slices_deathdata.png`
+- Their data referenced in place at ~/projects/egreedy; nothing from it committed here

@@ -1160,6 +1160,228 @@
       ]
     }
   },
+  "analysis_B_equivalence_sets_two_sided": {
+    "WangFreitas": {
+      "best_method": "eRandom",
+      "best_median": 1.0366034954856218e-06,
+      "holm_pvalues": {
+        "LHS": 0.030211,
+        "Explore": 0.030211,
+        "EI": 3.6e-05,
+        "PI": 0.0,
+        "UCB": 0.000446,
+        "PFRandom": 0.15926,
+        "eFront": 0.542342,
+        "Exploit": 1e-06
+      },
+      "equivalent_to_best": [
+        "PFRandom",
+        "eRandom",
+        "eFront"
+      ]
+    },
+    "BraninForrester": {
+      "best_method": "eRandom",
+      "best_median": 1.9954730667848253e-06,
+      "holm_pvalues": {
+        "LHS": 0.0,
+        "Explore": 0.0,
+        "EI": 1.0,
+        "PI": 0.0,
+        "UCB": 0.577815,
+        "PFRandom": 0.0,
+        "eFront": 1.0,
+        "Exploit": 0.045516
+      },
+      "equivalent_to_best": [
+        "EI",
+        "UCB",
+        "eRandom",
+        "eFront"
+      ]
+    },
+    "Branin": {
+      "best_method": "Exploit",
+      "best_median": 3.078559232316813e-06,
+      "holm_pvalues": {
+        "LHS": 0.0,
+        "Explore": 0.0,
+        "EI": 1.0,
+        "PI": 0.000104,
+        "UCB": 1.0,
+        "PFRandom": 0.0,
+        "eRandom": 1.0,
+        "eFront": 1.0
+      },
+      "equivalent_to_best": [
+        "EI",
+        "UCB",
+        "eRandom",
+        "eFront",
+        "Exploit"
+      ]
+    },
+    "Cosines": {
+      "best_method": "eFront",
+      "best_median": 2.016118971770453e-06,
+      "holm_pvalues": {
+        "LHS": 1e-06,
+        "Explore": 0.0,
+        "EI": 0.947685,
+        "PI": 0.211316,
+        "UCB": 0.631759,
+        "PFRandom": 0.179458,
+        "eRandom": 0.008178,
+        "Exploit": 0.000106
+      },
+      "equivalent_to_best": [
+        "EI",
+        "PI",
+        "UCB",
+        "PFRandom",
+        "eFront"
+      ]
+    },
+    "logGoldsteinPrice": {
+      "best_method": "eFront",
+      "best_median": 8.756559344291759e-07,
+      "holm_pvalues": {
+        "LHS": 0.0,
+        "Explore": 0.0,
+        "EI": 0.005085,
+        "PI": 0.0,
+        "UCB": 0.0,
+        "PFRandom": 0.0,
+        "eRandom": 0.004601,
+        "Exploit": 0.005085
+      },
+      "equivalent_to_best": [
+        "eFront"
+      ]
+    },
+    "logSixHumpCamel": {
+      "best_method": "eRandom",
+      "best_median": 3.807258574184402e-05,
+      "holm_pvalues": {
+        "LHS": 0.0,
+        "Explore": 0.0,
+        "EI": 0.00187,
+        "PI": 0.0,
+        "UCB": 0.0,
+        "PFRandom": 0.0,
+        "eFront": 0.253087,
+        "Exploit": 0.253087
+      },
+      "equivalent_to_best": [
+        "eRandom",
+        "eFront",
+        "Exploit"
+      ]
+    },
+    "logHartmann6": {
+      "best_method": "eRandom",
+      "best_median": 0.0005094879459277557,
+      "holm_pvalues": {
+        "LHS": 0.0,
+        "Explore": 0.0,
+        "EI": 1.0,
+        "PI": 1.0,
+        "UCB": 0.0,
+        "PFRandom": 0.0,
+        "eFront": 0.009859,
+        "Exploit": 1.0
+      },
+      "equivalent_to_best": [
+        "EI",
+        "PI",
+        "eRandom",
+        "Exploit"
+      ]
+    },
+    "logGSobol": {
+      "best_method": "eFront",
+      "best_median": 5.060675382352009,
+      "holm_pvalues": {
+        "LHS": 0.0,
+        "Explore": 0.0,
+        "EI": 0.0,
+        "PI": 3e-06,
+        "UCB": 0.0,
+        "PFRandom": 0.000992,
+        "eRandom": 0.272248,
+        "Exploit": 0.272248
+      },
+      "equivalent_to_best": [
+        "eRandom",
+        "eFront",
+        "Exploit"
+      ]
+    },
+    "logRosenbrock": {
+      "best_method": "Exploit",
+      "best_median": 4.544487808579054,
+      "holm_pvalues": {
+        "LHS": 0.0,
+        "Explore": 0.0,
+        "EI": 0.0,
+        "PI": 0.0,
+        "UCB": 0.0,
+        "PFRandom": 0.040016,
+        "eRandom": 0.066711,
+        "eFront": 0.353421
+      },
+      "equivalent_to_best": [
+        "eRandom",
+        "eFront",
+        "Exploit"
+      ]
+    },
+    "logStyblinskiTang": {
+      "best_method": "eFront",
+      "best_median": 1.5295770763676066,
+      "holm_pvalues": {
+        "LHS": 0.0,
+        "Explore": 0.0,
+        "EI": 0.0,
+        "PI": 0.0,
+        "UCB": 0.0,
+        "PFRandom": 0.0,
+        "eRandom": 0.256715,
+        "Exploit": 0.043295
+      },
+      "equivalent_to_best": [
+        "eRandom",
+        "eFront"
+      ]
+    }
+  },
+  "analysis_B_variant_disagreements": {
+    "WangFreitas": {
+      "one_sided": [
+        "LHS",
+        "Explore",
+        "PFRandom",
+        "eRandom",
+        "eFront"
+      ],
+      "two_sided": [
+        "PFRandom",
+        "eRandom",
+        "eFront"
+      ]
+    },
+    "logRosenbrock": {
+      "one_sided": [
+        "eFront",
+        "Exploit"
+      ],
+      "two_sided": [
+        "eRandom",
+        "eFront",
+        "Exploit"
+      ]
+    }
+  },
   "analysis_B_soft_check_cosines": {
     "expected_superset": [
       "EI",
