@@ -19,6 +19,7 @@ results/*
 !results/exp_03_stats_summary.json
 !results/exp_04_corrected_stats.json
 !results/exp_05_tier1a.json
+!results/exp_06_timing_pilot.json
 
 # OS
 .DS_Store
