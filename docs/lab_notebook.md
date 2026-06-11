@@ -448,3 +448,25 @@ Paired effect sizes at T=250 (eRandom/eFront/Exploit vs EI, eRandom vs UCB; pair
 - `results/exp_05_tier1a.json`: provenance (upstream commit, f_opt source file/line per problem, sign convention, pipeline adaptations), per-cell gate results, all analyses
 - `figures/cd_diagram_deathdata_n10.png`, `figures/budget_slices_deathdata.png`
 - Their data referenced in place at ~/projects/egreedy; nothing from it committed here
+
+---
+
+# Phase 2, Part 9: Step 2 feasibility checks and Tier 1B spot-check launch
+
+Three independent pre-lock checks for the Tier 2 matrix, run 2026-06-11. No matrix runs were started before the checks completed.
+
+## Tier 2 timing pilot (exp_06)
+
+EI on Branin (d=2) and Ackley (d=10), 2 seeds, T=250 total evaluations, native (oas-test), with per-iteration GP-fit and acquisition timing via runtime wrappers (src/ untouched). Per-run wall time: Branin 14.6-19.6 s, Ackley10D 20.8-22.9 s; per-iteration cost stays at 0.04-0.23 s through n=250, fit-dominated. Extrapolation for the core matrix (8 arms x 10 problems x 30 seeds x T=250; arms costed as EI, d=6 interpolated, 6/1/3 problem split, linear 6-worker scaling): about 12.5 h single-process, about 2.1 h on 6 workers. Easily overnight-feasible on one machine. Script and JSON committed as exp_06.
+
+## Tier 1B Docker route
+
+Image georgedeath/egreedy pulls in 19m19s (6.6 GB, amd64 under qemu on Apple Silicon). Finding worth recording: the README's docker invocation is a silent no-op non-interactively, because the entrypoint script prints a banner and ignores the passed command (exit 0 with nothing run). Working form: `--entrypoint bash ... -lc '<cmd>'`. With that adaptation the README smoke test passes well beyond the criterion: 142 BO iterations in a 300 s timebox (about 2 s/iteration emulated), converging to Branin's optimum. Environment details recorded in literature/death_supplementary_audit.md ("Tier 1B environment notes").
+
+## push4/push8 dependency gate (D2)
+
+The pip-only gate failed: box2d-py 2.3.8 has no macOS arm64 wheel and its build dies on missing swig; pip installs nothing from the failed set, so the import checks failed downstream. The approved one-shot conda-forge rescue then passed in 122 s: swig + pybox2d + pygame + numpy install cleanly, `import Box2D, pygame` works (Box2D 2.3.10, pygame 2.6.1), and `from egreedy.test_problems import push4` imports and instantiates (dim=4). Decision: push4/push8 stay in the extension matrix. Note their README's manual path documents `conda install swig`; the pip failure is an incomplete-prerequisite issue, not a code defect.
+
+## Tier 1B spot-check (launched)
+
+Re-executing a paired subset of their pipeline in their image: {Branin, logGSobol} x {EI, eRandom eps0.1, eFront eps0.1, Exploit} x runs 1..11, budget 250, using their published initial designs (training_data bundled in the image), outputs to ~/projects/egreedy_tier1b via a results -> /out symlink (results_paper untouched). Orchestrator experiments/run_tier1b_docker.sh: per-run containers with docker-stop watchdogs, host-side skip of complete outputs, native resume of partials. Timing gate (Branin/EI/run1, logGSobol/EI/run1) precedes the batch; comparison analysis (exp_07) to be appended here once all 88 runs exist.

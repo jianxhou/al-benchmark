@@ -62,3 +62,10 @@ Flags:
 ## Summary
 
 F2 and F3 are undocumented, and in both cases the supplementary affirms the definition that the code does not implement (unscaled MAD; one-sided test). F1 is partially documented: the absolute-distance metric and the log-shift constants are stated, but the abs-before-cummin order and the coarse yopt are not, and the repo's own docstring/notebook descriptions match the un-implemented order.
+
+## Tier 1B environment notes (Docker re-execution)
+
+- `docker pull georgedeath/egreedy`: 6.6 GB image (bundles OpenFOAM v5 for PitzDaily), 19m19s pull on Apple Silicon with `--platform linux/amd64` (qemu emulation; ~2 s per BO iteration on Branin, fast enough for re-execution).
+- The README's documented invocation is misleading for non-interactive use: the image entrypoint is `/bin/sh -c "/entry.sh"`, which prints the OpenFOAM welcome banner and exits 0, silently ignoring any command passed after the image name. `docker run --rm georgedeath/egreedy python -m egreedy.optimizer` therefore "succeeds" having run nothing.
+- Working invocation: `docker run --rm --platform linux/amd64 --entrypoint bash georgedeath/egreedy -lc '<command>'` with the repo at `/egreedy` (image WorkingDir) and Python on the login-shell PATH.
+- Single-run CLI (README "Reproduction of experiments", and run_experiment.py): `python run_experiment.py -p PROBLEM -b BUDGET -r RUN_NO -a ACQUISITION [-aa epsilon:0.1]`, e.g. `python run_experiment.py -p Branin -b 250 -r 1 -a eFront -aa epsilon:0.1`. Paths are CWD-relative: initial designs from `training_data/{p}_{r}.npz` (bundled in the image), outputs to `results/{p}_{r}_{b}_{a}[_eps{eps:g}].npz`, written every iteration with `continue_runs=True`, so interrupted runs resume. For Tier 1B we symlink `results -> /out` (a host mount) inside the ephemeral container, keeping the published `results_paper/` untouched.
