@@ -1,0 +1,80 @@
+% Phase 2 paper skeleton (TMLR target). Headers + one-line TODOs only, no prose.
+% TODO: replace article with the TMLR style files (\usepackage{tmlr}) for submission; TMLR is double-blind.
+\documentclass{article}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+% TODO: title
+\title{Reproducibility and Generalizability of Exploration--Exploitation Claims in Low-Budget Bayesian Optimization}
+% TODO: author block (double-blind for review; de-anonymize on acceptance)
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% TODO: abstract -- mechanism-level reassessment adjudicating E1/E2/E3; cross-problem inference + LogEI test.
+\end{abstract}
+
+\section{Introduction}
+% TODO: three-explanation positioning -- E1 deliberate exploration unnecessary; E2 accidental exploration from a poor surrogate; E3 numerical acquisition failure. State the gap and contributions.
+
+\section{Related Work}
+% TODO A: De Ath et al. and the low-budget epsilon-greedy line (claims C1-C5).
+% TODO B: follow-ups that extend rather than examine (eps-shotgun, AEGiS, eps-greedy TS, GECCO 2024 multi-objective companion; all in the original author circle).
+% TODO C: Ament et al., the numerical pathology of improvement acquisition, LogEI, BoTorch adoption + NumericsWarning carve-out.
+% TODO D: the gap -- no joint cross-problem re-analysis of the epsilon-greedy evidence tied to the LogEI pathology.
+
+\section{Reproduction Targets and Claims}
+% TODO: Target A claims C1-C5 (epsilon-greedy at least as good at low budget; wins in high d; mostly-greedy-with-random best; pure exploitation competitive in high d; epsilon-insensitivity / raw-vs-log flip).
+% TODO: Target B claims L1-L3 (EI values/gradients vanish; inconsistent/suboptimal EI; LogEI same optima, easier to optimize).
+
+\section{Documentation Findings}
+% TODO F1: regret = cummin of per-evaluation |y - yopt| with coarse-grid yopt (partially documented).
+% TODO F2: Table 2 "MAD" is scipy's scaled median_absolute_deviation (scale 1.4826), undocumented.
+% TODO F3: paper text says one-sided Wilcoxon; released code calls scipy's two-sided default.
+% TODO F4: Ament Section 5 internal inconsistency (16 uniform-random L-BFGS-B starts vs 20 restarts from 1024 default-heuristic samples).
+% TODO F5: no tau/temperature in the analytic LogEI path (exact branch analysis, not a smoothed approximation); tau_relu/tau_max live only in the MC batch variants.
+
+\section{Methods}
+% TODO: tier structure -- Tier 1A re-analysis (zero compute), Tier 1B targeted re-execution (Docker), Tier 2 conceptual replication in al-benchmark.
+% TODO: fairness hard rule -- EI vs LogEI share model/fit/init/restarts/raw-samples/optimizer budget; only the acquisition objective differs.
+% TODO: acquisition diagnostics probe -- candidate-pool and optimizer-level underflow/gradient logging, identical on EI and LogEI.
+% TODO: pre-registration -- Tier 1A frozen at tag tier1a-frozen; Tier 2 analysis frozen at tag exp09-prereg before matrix data; analysis defines the data schema.
+
+\section{Pre-registered Predictions}
+% TODO P1: optimizer mediation -- classic EI degrades more vs LogEI under the gradient-based stack than under the derivative-free stack.
+% TODO P2: underflow-performance coupling -- degenerate/all-zero acquisition iterations coincide with regret stagnation for EI, not LogEI.
+% TODO P3: scaling -- underflow frequency rises with observations and dimension; map against where the epsilon-greedy advantage is largest.
+
+\section{Results}
+
+\subsection{Tier 1A re-analysis}
+% TODO: Table 2 reproduction gate; Friedman/Nemenyi (N=10, k=9, chi2=50.66, CD=3.80); budget slices; mixed-effects magnitude model; paired effect sizes.
+
+\subsection{Tier 1B re-execution}
+% TODO: 88-run Docker spot-check vs published 51-run distributions; paired log-regret deltas; emulation/entrypoint caveats.
+
+\subsection{Tier 2 core matrix}
+% TODO: 8 arms x 10 problems x 30 seeds; PRECISE-track Friedman/Nemenyi + CD diagram; MixedLM; per-problem Wilcoxon; generalization model; claim verdicts C1/C2/C4.
+
+\subsection{Mechanism}
+% TODO: P1a EI-minus-LogEI by dimension; P1b cross-stack difference-in-differences (DEATH track); P2 underflow coupling; P3 probe scaling.
+
+\section{Discussion}
+% TODO: rank-vs-magnitude divergence reported side by side, treated as a substantive result.
+% TODO: boundary map -- where deliberate global exploration remains necessary (e.g. WangFreitas) vs where exploitation suffices.
+% TODO: limitations -- amd64 emulation on Apple Silicon; stack differences beyond the acquisition optimizer not held constant; partial replication (CFD excluded).
+
+\section{Reproducibility Statement}
+% TODO: seeds, package versions, GP-fit diagnostics, probe logs per run; validation gates; frozen tags; shared initial designs; data/code availability.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

@@ -66,3 +66,15 @@ report/*.toc
 
 # Exception: commit the compiled report PDF for easy viewing
 !report/bo_benchmark_report.pdf
+
+# LaTeX build artifacts (report/phase2_paper/) — commit only sources (.tex/.bib)
+report/phase2_paper/*.aux
+report/phase2_paper/*.bbl
+report/phase2_paper/*.blg
+report/phase2_paper/*.log
+report/phase2_paper/*.out
+report/phase2_paper/*.pdf
+report/phase2_paper/*.synctex.gz
+report/phase2_paper/*.fls
+report/phase2_paper/*.fdb_latexmk
+report/phase2_paper/*.toc
