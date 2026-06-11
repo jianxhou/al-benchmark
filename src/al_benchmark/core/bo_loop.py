@@ -34,17 +34,32 @@ def run_bo(
     n_init: int | None = None,
     n_iter: int = 20,
     verbose: bool = False,
+    initial_design: Tensor | None = None,
 ) -> BOResult:
     """Run a Sobol initial design, then `n_iter` acquisition steps (maximization).
 
     `seed` controls both the initial design and strategy randomness.
     `n_init` defaults to 2 * problem.dim.
+
+    `initial_design` (D8): an (M, dim) array used verbatim INSTEAD of generating a
+    fresh Sobol design (e.g. De Ath's published designs). `seed` still seeds the
+    acquisition/strategy RNG; only the initial X is replaced. Its y values are
+    re-evaluated through this pipeline (the problems are deterministic), so the
+    injected points appear verbatim in `result.train_x[:M]`.
     """
     torch.manual_seed(seed)
 
-    if n_init is None:
-        n_init = 2 * problem.dim
-    train_x = draw_sobol_samples(bounds=problem.bounds, n=n_init, q=1).squeeze(1)
+    if initial_design is not None:
+        train_x = torch.as_tensor(initial_design, dtype=problem.bounds.dtype)
+        if train_x.ndim != 2 or train_x.shape[-1] != problem.dim:
+            raise ValueError(
+                f"initial_design must be (M, {problem.dim}); got {tuple(train_x.shape)}"
+            )
+        n_init = train_x.shape[0]
+    else:
+        if n_init is None:
+            n_init = 2 * problem.dim
+        train_x = draw_sobol_samples(bounds=problem.bounds, n=n_init, q=1).squeeze(1)
     train_y = problem(train_x).unsqueeze(-1)
 
     best_observed: list[float] = [train_y.max().item()]

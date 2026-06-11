@@ -15,6 +15,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from death_suite import DEATH_PROBLEMS
 
 from al_benchmark.core.bo_loop import run_bo
 from al_benchmark.problems.engineering import Borehole, Piston
@@ -33,6 +34,8 @@ PROBLEMS = {
     "SixHumpCamel": lambda: SixHumpCamel(),
     "Borehole": lambda: Borehole(),
     "Piston": lambda: Piston(),
+    # Ported De Ath synthetic suite (Step 3b); classes are callable factories.
+    **DEATH_PROBLEMS,
 }
 
 STRATEGIES = {

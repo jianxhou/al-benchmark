@@ -100,6 +100,24 @@ On Ackley-10D, all four strategies remain at high regret; the balanced strategie
 
 Synthetic problems wrap BoTorch's built-in test functions. Engineering problems (Borehole from SMT's WaterFlow; Piston implemented manually from the standard closed-form formula) model physical systems with heterogeneous input scales. For both engineering functions the global maximum lies at a box vertex, so f\* is obtained by exhaustive corner evaluation (2^d vertices) plus a small conservative buffer to guarantee non-negative simple regret.
 
+**De Ath synthetic suite (Phase 2).** Ported from De Ath et al. (2021), "Greed is Good"; formulae and domains follow their code (`egreedy/test_problems/synthetic_problems.py`). Naturally minimized functions are negated (maximization convention), so each f\* below is the precise optimum in this project's convention (`-g*`); De Ath's own coarse `yopt` is kept separately as `DEATH_YOPT` (`experiments/death_suite.py`) for reproducing their Table 2 regret. `log` variants apply their `log(g(x) + shift)` transform; `GSobol`/`Rosenbrock` are the raw (untransformed) variants for the transformation axis.
+
+| `--problem` | Type | d | f\* (precise, maximization) |
+|---|---|---|---|
+| `WangFreitas` | Synthetic (1-d, deceptive) | 1 | 4.0000 |
+| `BraninForrester` | Synthetic | 2 | 16.6440 |
+| `Cosines` | Synthetic | 2 | 1.6000 |
+| `GoldsteinPriceLog` | Synthetic (log) | 2 | −1.0986 |
+| `SixHumpCamelLog` | Synthetic (log) | 2 | 9.5452 |
+| `Hartmann6Log` | Synthetic (log) | 6 | 1.2007 |
+| `GSobolLog` | Synthetic (log) | 10 | 6.9315 |
+| `RosenbrockLog` | Synthetic (log) | 10 | 0.6931 |
+| `StyblinskiTangLog` | Synthetic (log) | 10 | −2.1209 |
+| `GSobol` | Synthetic (raw) | 10 | −0.000977 |
+| `Rosenbrock` | Synthetic (raw) | 10 | 0.0 |
+
+De Ath's published initial designs can be injected into any run via `run_bo(..., initial_design=load_death_initial_design(name, run_no))` (`al_benchmark.problems.death`), replacing the Sobol design while re-evaluating y through this pipeline.
+
 **Statistics.** Friedman omnibus rank test followed, on rejection, by Nemenyi all-pairs post-hoc at α = 0.05. Each (problem, seed) pair is one block, giving N = 60 blocks and k = 4 strategies. The critical difference CD = q_α · √(k(k+1)/6N) ≈ 0.61 is computed analytically inside the plotting function so it stays correct under any change to N or k.
 
 ## Repository structure
@@ -143,7 +161,7 @@ Run a single problem across all strategies (10 seeds, 20 iterations):
 python experiments/exp_02_strategies_per_problem.py --problem Branin
 ```
 
-Available problems (case-sensitive): `Branin`, `SixHumpCamel`, `Hartmann6`, `Piston`, `Borehole`, `Ackley`. Each run writes a JSON result file to `results/` and a figure to `figures/`.
+Available problems (case-sensitive): `Branin`, `SixHumpCamel`, `Hartmann6`, `Piston`, `Borehole`, `Ackley`, plus the ported De Ath suite `WangFreitas`, `BraninForrester`, `Cosines`, `GoldsteinPriceLog`, `SixHumpCamelLog`, `Hartmann6Log`, `GSobolLog`, `RosenbrockLog`, `StyblinskiTangLog`, `GSobol`, `Rosenbrock`. Each run writes a JSON result file to `results/` and a figure to `figures/`.
 
 Run the statistical analysis (Friedman + Nemenyi + CD diagram) over the full 6-problem suite:
 
