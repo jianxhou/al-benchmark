@@ -127,3 +127,30 @@ SingleTaskGP (default Matern-5/2 ARD) on 5 uniform-random points of the 2d quadr
 | (0.90, 0.10) | 1.004344e-03 | -6.903421 | 1.004344e-03 | 1.1e-15 |
 
 exp(LogEI) matches EI at machine precision wherever EI > 0. Note: instantiating `ExpectedImprovement` in botorch 0.17.2 emits a `NumericsWarning` recommending `LogExpectedImprovement`, citing this paper.
+
+## 4. Benchmark dimensions and budgets recovered from figure text
+
+The TeX never states the Ackley/Michalewicz dimensions or budgets; they are embedded in the figure PDFs. Extracted with pdfminer.six (pdftotext unavailable) from `/fig/` of the v3 source; panel titles and tick labels are machine-readable, rotated axis labels render letter-by-letter but are decodable. The verifiable datum for each budget is the last x-axis tick label; whether the axis extends past the last tick cannot be established from text extraction, so budgets below are "ticks end at N".
+
+| Problem | Dim | Budget (last x tick) | q | Source figure |
+|---|---|---|---|---|
+| Ackley | 2, 8, 16 | 250 (Function evaluations) | 1 | `so_best_obj_q1.pdf` (Sec. 5 figure; panel titles `d = 2/8/16`, both problem rows) |
+| Michalewicz | 2, 8, 16 | 250 (Function evaluations) | 1 | `so_best_obj_q1.pdf` |
+| Sum-of-Squares | 10 (TeX line 563) | 200 (Number of evaluations) | 1 | `logei_intro_fig_small.pdf` |
+| Ackley | 16 | 200 (Function evaluations) | 4, 16, 32 | `qso_best_obj_ackley.pdf` (Sec. 5 parallel figure, panel titles `q = 4/16/32`) |
+| Ackley, Levy | 16 | 250 (Function evaluations) | 4, 8, 16, 32 | `qso_best_obj.pdf` (appendix; Levy confirmed in rotated label) |
+| Hartmann | 6 | 200 (Function evaluations) | 1 | `nso_best_obj_q1.pdf` (noisy; panels Noise = 1.0/2.0/5.0% * Range(f)) |
+| Ackley | 8, 16 | 200 (Function evaluations) | 1 | `nso_best_obj_q1.pdf` |
+| Ackley, Michalewicz | 2, 8, 16 | 200 (Function Evaluations) | 1 | `so_boltzmann_random.pdf` (init-strategy comparison) |
+| Ackley, Levy | 16 (caption, line 1761) | x-axis = number of restart points (ticks 4-16) | 1, 4, 16 | `num_restarts_sensitivity.pdf` (panel titles `ackley/levy q=1/4/16`) |
+| Ackley, SoS | 2, 16 | 250 | 1 | `qlogei_tau_softplus_ablation.pdf` (tau ablation, `tau_softplus` in {1e-1..1e-6}) |
+| Ackley | 50 | 10000 (Number of evaluations) | 50 | `turbo_ackley.pdf` (panel title `50D Ackley, q=50`) |
+| Tension-Compression String | 3 (+4 constraints) | 100 (Iterations) | 1 | `cso_best_obj_q1.pdf` (panel titles state dims and constraint counts) |
+| Pressure Vessel Design | 4 (+4 constraints) | 100 (Iterations) | 1 | `cso_best_obj_q1.pdf` |
+| Welded Beam Design | 4 (+5 constraints) | 100 (Iterations) | 1 | `cso_best_obj_q1.pdf` |
+| Speed Reducer Design | 7 (+11 constraints) | 100 (Iterations) | 1 | `cso_best_obj_q1.pdf` |
+| Embedded Hartmann6 | 100 | 100 (Iterations) | 4 | `high_dim.pdf` (panel title `100D Embedded Hartmann6 (q = 4)`) |
+| SVM | 103 | 100 (Iterations) | 4 | `high_dim.pdf` (panel title `103D SVM (q = 4)`) |
+| Rover | 100 (main text, "100-dimensional rover trajectory planning") | 100 (Iterations) | 4 (by analogy with sibling panels; q not in extracted text for this panel) | `high_dim.pdf` (rotated "Rover" label confirmed) |
+
+Not establishable from text extraction: the exact axis endpoints beyond the last tick; the SoS budget past 200; the q for the Rover panel (no `(q = ...)` string extracted); `VanishingGradientPlot.pdf` contains no extractable text at all (the intro vanishing-gradient figure's n and d values are therefore unrecoverable this way; its TeX caption gives only "for different dimensions d").
