@@ -24,6 +24,7 @@ class BOResult:
     best_observed: list[float] = field(default_factory=list)  # length n_init + n_iter
     regret_history: list[float] = field(default_factory=list) # length n_init + n_iter
     final_regret: float = 0.0
+    probe: list | None = None          # acquisition diagnostics, one entry per iter
 
 
 def run_bo(
@@ -87,4 +88,8 @@ def run_bo(
         best_observed=best_observed,
         regret_history=regret_history,
         final_regret=regret_history[-1],
+        # Strategies running an AcqProbe expose its per-iteration log here;
+        # absent for all other strategies (and probe-off EI/LogEI), so the
+        # result is unchanged for existing experiments.
+        probe=getattr(strategy, "probe_log", None),
     )
