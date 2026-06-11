@@ -18,6 +18,7 @@ results/*
 !**/example_*.csv
 !results/exp_03_stats_summary.json
 !results/exp_04_corrected_stats.json
+!results/exp_05_tier1a.json
 
 # OS
 .DS_Store
@@ -40,6 +41,8 @@ figures/*.pdf
 !figures/cd_diagram_n6.png
 !figures/exp_02_borehole_strategies.png
 !figures/exp_02_ackley_strategies.png
+!figures/cd_diagram_deathdata_n10.png
+!figures/budget_slices_deathdata.png
 
 # Literature (PDFs are large, don't commit)
 literature/*.pdf
