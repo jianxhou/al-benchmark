@@ -33,8 +33,10 @@ All factual outputs carry a confidence tag:
 - **D4** Eps sweep {0.05, 0.1, 0.2, 0.4} on three problems; 0.01 if budget allows.
 - **D5** Tier 1B Docker-first — validated with an entrypoint adaptation (`docker run --entrypoint bash ... -lc '<cmd>'`; the README's plain invocation is a silent no-op). Conda fallback; Tier 2 development native.
 - **D6** Tier 1A analysis timestamped as informal pre-registration -> tag `tier1a-frozen`.
-- **D7** Tier 2 analysis pre-registered and frozen BEFORE matrix data -> tag `exp09-prereg`; the analysis defines the data schema (see Section 4).
+- **D7** Ament anchor problem (Ackley d=8, q=1 — their main Section 5 setting) added to the extension matrix; adopted after the timing pilot.
 - **D8** Shared De Ath initial designs injected via `run_bo(initial_design=...)`; loader + schema contract per `exp_09`.
+
+(The Tier 2 analysis pre-registration freeze is not a numbered D-decision — it is captured by tag `exp09-prereg` and the data-contract rule in Section 4.)
 
 ## 4. Data contract rule
 
