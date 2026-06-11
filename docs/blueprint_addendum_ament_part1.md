@@ -1,0 +1,30 @@
+# Blueprint Addendum: Target B (Ament et al. 2023, LogEI) Protocol Extraction, Part 1
+
+Status: verified content from arXiv:2310.20708v3 (revised Jan 2025, NeurIPS 2023 Spotlight). Remaining items routed to a code-level extraction task (Part 2). Supplements Section 5 of docs/phase2_blueprint.md.
+
+## 1. Refined claims (verified from v3 main text)
+
+L1 (refined, quantitative). EI is never mathematically zero under a Gaussian posterior (except at points perfectly correlated with a noiseless observation), but it often vanishes numerically, becoming exactly zero in double precision; the same holds for its gradient. Figure 1 quantifies the mechanism: the fraction of domain points where the magnitude of EI's gradient falls below 1e-10 grows with the number of observations n, stratified by dimension d, on the Ackley function; on a 1-d quadratic example, EI is exactly zero in double precision over a large contiguous part of the domain. (Section 1, Figure 1; further results in Appendix D.2.)
+
+L1-opt (authors' own optimizer-mediation statement). The paper states that multi-start gradient-based acquisition optimization eventually degenerates into random search when the gradients at the starting points are numerically zero, and that the problem is particularly acute in high dimensions and for objectives with a large range. (Section 1, Motivation.) This is the authors' own articulation of the mechanism behind our pre-registered prediction P1. Note the converse implication for Tier 1: De Ath's stack optimizes acquisitions with derivative-free NSGA-II, which is not exposed to vanishing gradients in the same way; EI's mid-pack rank in the De Ath data therefore cannot be attributed to the gradient channel of L1. P1's contrast (EI vs LogEI gap larger in our gradient stack than in their derivative-free stack) is exactly the test that separates these.
+
+L3 (refined). Analytic LogEI mathematically results in the same BO policy as EI; the empirical performance difference is therefore attributable to numerics, not to a different acquisition policy. (Contributions, item 1.) The MC batch variants (qLogEI, qLogEHVI) and constrained variants use smooth approximations and are approximately, not exactly, policy-equivalent. All variants ship in BoTorch. (Contributions, item 2.)
+
+Initialization channel (additional mechanism channel, verified to exist as a topic). The paper discusses multi-start initialization heuristics for acquisition optimization (Appendix B.1) and the effect of the initialization strategy (Appendix D.11). BoTorch's standard initializer selects promising starting points from raw samples by their acquisition values, so a degenerate EI surface can corrupt initialization as well as L-BFGS descent. Our candidate-pool probe (blueprint Section 8) covers this channel; the per-restart probe covers the descent channel.
+
+Related-work nuance (verified from appendix structure). Appendix A.2 documents prior approximate log-EI formulations in SMAC 1.0, RoBO, and HEBO. LogEI's contribution is the numerically stable exact (analytic case) and smoothed (batch case) implementations, not the first occurrence of a log transformation. Our related-work Section C must reflect this.
+
+## 2. Paper map (for targeted reading and citation)
+
+Section 3: theoretical analysis of EI's vanishing gradients. Section 4.1: analytic LogEI. Section 4.2: qLogEI. Section 4.3: constrained. Section 4.4: qLogEHVI. Section 5: empirical results, in order: single-objective sequential BO; constrained; parallel qLogEI; high-dimensional with qLogEI; multi-objective qLogEHVI. Section 6 Discussion includes paragraphs on problem dimensionality, asymptotic improvements, and model quality. Appendix A.1: numerical study of acquisition values; equivalence of optimizers. Appendix A.2: analytic LogEI asymptotics, Mills ratio approximation, SMAC/RoBO/HEBO comparisons. Appendix B/B.1: acquisition optimization strategies and initialization heuristics. Appendix D.1: experimental details. Appendix D.2: additional vanishing values and gradients results. Appendix D.10: temperature parameter effect. Appendix D.11: initialization strategy effect.
+
+## 3. Design implications locked now
+
+Our Tier 2 LogEI arm is the analytic LogExpectedImprovement in the sequential q = 1 noiseless setting, matching the De Ath protocol shape. Smoothing temperature parameters (tau) belong to the MC batch variants and are expected to be irrelevant for the analytic arm; to be confirmed against the local BoTorch source in Part 2.
+The EI vs LogEI fairness rule (blueprint Section 7) is reinforced by L3-refined: since analytic LogEI is policy-identical to EI, any Tier 2 performance gap between the two arms under identical settings is direct evidence on E3, with the probe logs supplying the mechanism trace.
+Relative standing interpretation: under L1-opt, the sharpest observable is classic EI drifting toward random-search behavior late in runs under the gradient stack while LogEI does not; stagnation segments should align with degenerate probe readings (prediction P2).
+
+## 4. PENDING, routed to Part 2 (code-level extraction)
+
+From the paper TeX source (arxiv.org/src/2310.20708): Section 5 and Appendix D.1 specifics, namely the exact single-objective benchmark list with dimensions, budgets, replication counts, error bar conventions, GP configuration, and acquisition optimizer settings (num_restarts, raw_samples, optimizer); Appendix D.2 figure specifications for the vanishing-gradient measurements (to align our probe definitions with theirs).
+From the local BoTorch installation (version pinned in oas-test): exact source of analytic LogExpectedImprovement and its log_h helper (branch structure, erfcx usage, constants); confirmation that no temperature parameter enters the analytic path; optimize_acqf and initializer defaults relevant to the fairness rule.
