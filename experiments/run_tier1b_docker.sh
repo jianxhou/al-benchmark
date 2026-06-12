@@ -51,6 +51,15 @@ run_one() {  # problem run method args
         echo "[skip] $of complete"
         return 0
     fi
+    # An unreadable npz (kill mid-savez) would crash their in-container resume;
+    # delete it so the run restarts cleanly.
+    if [ -f "$OUT/$of" ] && ! "$PY" -c "
+import sys, numpy as np
+np.load(sys.argv[1])['Ytr']
+" "$OUT/$of" 2>/dev/null; then
+        echo "[reset] $of unreadable, deleting partial"
+        rm -f "$OUT/$of"
+    fi
     local cmd="cd /egreedy && rm -rf results && ln -s /out results && python run_experiment.py -p $p -b $BUDGET -r $r -a $m"
     [ -n "$aa" ] && cmd="$cmd -aa $aa"
     local name="tier1b_${p}_${r}_${m}"

@@ -470,3 +470,22 @@ The pip-only gate failed: box2d-py 2.3.8 has no macOS arm64 wheel and its build 
 ## Tier 1B spot-check (launched)
 
 Re-executing a paired subset of their pipeline in their image: {Branin, logGSobol} x {EI, eRandom eps0.1, eFront eps0.1, Exploit} x runs 1..11, budget 250, using their published initial designs (training_data bundled in the image), outputs to ~/projects/egreedy_tier1b via a results -> /out symlink (results_paper untouched). Orchestrator experiments/run_tier1b_docker.sh: per-run containers with docker-stop watchdogs, host-side skip of complete outputs, native resume of partials. Timing gate (Branin/EI/run1, logGSobol/EI/run1) precedes the batch; comparison analysis (exp_07) to be appended here once all 88 runs exist.
+
+## Tier 1B spot-check results (appended on completion)
+
+All 88 runs completed (86 batch + 2 gate, every container exit 0, all npz verified at 250 rows). Total batch wall time about 21 h on 2 emulated containers; per-run walls about 11 min (Branin) and 43-45 min (logGSobol), matching the gate projection.
+
+Comparison vs their published runs (exp_07; regret = cummin |y - yopt| as in exp_05; runs 1..11 share their published initial designs, so per-run differences are paired):
+
+| problem | method | med ours | med theirs (51) | med paired dlog | sign p | MW p |
+|---|---|---|---|---|---|---|
+| Branin | EI | 3.19e-6 | 4.15e-6 | -0.67 | 0.23 | 0.19 |
+| Branin | eRandom | 2.46e-6 | 3.17e-6 | -0.59 | 0.55 | 0.29 |
+| Branin | eFront | 5.23e-6 | 3.57e-6 | -0.90 | 1.00 | 0.90 |
+| Branin | Exploit | 4.38e-6 | 3.08e-6 | +0.05 | 1.00 | 0.19 |
+| logGSobol | EI | 6.41 | 7.15 | -0.14 | 0.23 | 0.10 |
+| logGSobol | eRandom | 5.13 | 5.13 | -0.13 | 0.23 | 0.75 |
+| logGSobol | eFront | 4.31 | 5.06 | -0.18 | 0.55 | 0.29 |
+| logGSobol | Exploit | 4.99 | 5.27 | +0.06 | 1.00 | 0.74 |
+
+No (problem, method) cell shows a significant difference: all sign-test p >= 0.23, all Mann-Whitney (our 11 vs their 51) p >= 0.10. Branin medians sit in the 1e-6 machine-precision regime where paired log-differences are dominated by terminal-refinement noise; logGSobol medians agree to within 0.06-0.18 in log terms. Verdict: their pipeline re-executes consistently in their published image; the Tier 1A data can be treated as reproducible, not merely re-analyzable. Runs are not bit-identical to theirs (same initial designs, but GP fitting/acquisition optimization are not seeded beyond the design), so this is distributional, not exact, reproduction.
